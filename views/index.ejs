@@ -1,12 +1,131 @@
 <% layout('partials/layout') %>
-<div class="grid">
-  <% paquetes.forEach(p=>{ %>
-    <div class="card">
-      <img src="/img/<%= p.imagen || 'cuenca1.png' %>" width="475" height="464" alt="<%= p.titulo %>"/>
-      <h2><%= p.titulo %></h2>
-      <p><%= p.descripcion %></p>
-      <p><b>Adulto:</b> $<%= Number(p.precio_adulto).toFixed(2) %> · <b>Niño:</b> $<%= Number(p.precio_nino).toFixed(2) %></p>
-      <a class="btn" href="/paquetes/<%= p.codigo %>">Ver</a>
+
+<section class="toolbar">
+  <form id="filtros" onsubmit="event.preventDefault()">
+    <div class="group">
+      <label>Fecha</label>
+      <input type="date" id="f-fecha" />
     </div>
+    <div class="group">
+      <label>Adultos</label>
+      <select id="f-adultos">
+        <% for(let i=1;i<=10;i++){ %>
+          <option value="<%=i%>" <%= i===2?'selected':'' %>><%= i %></option>
+        <% } %>
+      </select>
+    </div>
+    <div class="group">
+      <label>Niños</label>
+      <select id="f-ninos">
+        <% for(let i=0;i<=10;i++){ %>
+          <option value="<%=i%>"><%= i %></option>
+        <% } %>
+      </select>
+    </div>
+    <button class="btn" id="btn-aplicar">Aplicar</button>
+  </form>
+</section>
+
+<% if (error) { %>
+  <div class="alert"><%= error %></div>
+<% } %>
+
+<section class="grid">
+  <% paquetes.forEach(p => { %>
+    <article class="card" data-id="<%= p.id %>" data-pa="<%= p.precio_adulto %>" data-pn="<%= p.precio_nino %>">
+      <div class="imgwrap">
+        <img src="<%= p.imagen_url || '/img/noimg.jpg' %>" alt="<%= p.nombre %>" loading="lazy" />
+      </div>
+
+      <div class="card-body">
+        <h3 class="title"><%= p.nombre %></h3>
+        <p class="meta"><span><%= p.ciudad || 'Cuenca' %></span> · <span><%= p.duracion_dias %> días</span></p>
+
+        <div class="price-row">
+          <div>
+            <small>Desde</small>
+            <div class="price-adult">Adulto: $<%= Number(p.precio_adulto).toFixed(2) %></div>
+            <div class="price-child">Niño: $<%= Number(p.precio_nino).toFixed(2) %></div>
+          </div>
+
+          <form class="buy" method="POST" action="/checkout">
+            <input type="hidden" name="paqueteId" value="<%= p.id %>">
+            <input type="hidden" name="fecha" class="h-fecha">
+            <input type="hidden" name="adultos" class="h-adultos">
+            <input type="hidden" name="ninos" class="h-ninos">
+            <input type="hidden" name="total" class="h-total">
+
+            <div class="calc">
+              <div class="line">
+                <label>Adultos</label>
+                <input type="number" class="in-adultos" min="1" max="20" value="2">
+              </div>
+              <div class="line">
+                <label>Niños</label>
+                <input type="number" class="in-ninos" min="0" max="20" value="0">
+              </div>
+              <div class="total">
+                Total: <strong class="total-val">$0.00</strong>
+              </div>
+            </div>
+
+            <button class="btn-primary">Comprar</button>
+          </form>
+        </div>
+      </div>
+    </article>
   <% }) %>
-</div>
+</section>
+
+<script>
+  // Sincroniza filtros superiores con cada tarjeta + calcula totales
+  const $adultSel = document.getElementById('f-adultos');
+  const $ninoSel  = document.getElementById('f-ninos');
+  const $fecha    = document.getElementById('f-fecha');
+  const $apply    = document.getElementById('btn-aplicar');
+
+  function calcCard(card){
+    const pa = parseFloat(card.dataset.pa || '0'); // precio adulto
+    const pn = parseFloat(card.dataset.pn || '0'); // precio niño
+    const inA = card.querySelector('.in-adultos');
+    const inN = card.querySelector('.in-ninos');
+    const totalEl = card.querySelector('.total-val');
+
+    const a = Math.max(1, parseInt(inA.value || '1'));
+    const n = Math.max(0, parseInt(inN.value || '0'));
+    const total = (a*pa) + (n*pn);
+    totalEl.textContent = '$' + total.toFixed(2);
+
+    // Actualiza los hidden del form
+    card.querySelector('.h-adultos').value = a;
+    card.querySelector('.h-ninos').value   = n;
+    card.querySelector('.h-fecha').value   = $fecha.value || '';
+    card.querySelector('.h-total').value   = total.toFixed(2);
+  }
+
+  // Inicializa todas
+  document.querySelectorAll('.card').forEach(card=>{
+    // Valores por defecto desde la barra
+    card.querySelector('.in-adultos').value = parseInt($adultSel.value);
+    card.querySelector('.in-ninos').value   = parseInt($ninoSel.value);
+    calcCard(card);
+
+    // Recalcular al cambiar inputs
+    card.querySelector('.in-adultos').addEventListener('input', ()=>calcCard(card));
+    card.querySelector('.in-ninos').addEventListener('input', ()=>calcCard(card));
+
+    // Al enviar, recalcula y manda
+    card.querySelector('form.buy').addEventListener('submit', ()=>{
+      calcCard(card);
+    });
+  });
+
+  // Botón "Aplicar" de la barra: copia valores a todas las cards
+  $apply.addEventListener('click', ()=>{
+    document.querySelectorAll('.card').forEach(card=>{
+      card.querySelector('.in-adultos').value = parseInt($adultSel.value);
+      card.querySelector('.in-ninos').value   = parseInt($ninoSel.value);
+      calcCard(card);
+    });
+  });
+</script>
