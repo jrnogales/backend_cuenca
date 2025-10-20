@@ -4,17 +4,16 @@ import { listPaquetes, getPaqueteByCodigo } from '../models/Paquete.js';
 export async function home(req, res) {
   try {
     const paquetes = await listPaquetes();
-    // Enviamos siempre title y error para que EJS no falle
     res.render('index', {
       title: 'Explorar paquetes',
       paquetes,
-      error: null
+      error: null,
     });
   } catch (e) {
     res.render('index', {
       title: 'Explorar paquetes',
       paquetes: [],
-      error: e.message || 'No se pudo cargar los paquetes'
+      error: e.message || 'No se pudo cargar los paquetes',
     });
   }
 }
@@ -34,12 +33,12 @@ export async function detalle(req, res) {
         codigo: paquete.codigo,
         titulo: paquete.titulo,
         descripcion: paquete.descripcion,
-        imagen: paquete.imagen || 'cuenca1.png',
+        imagen: paquete.imagen || 'noimg.jpg',
         stock: paquete.stock,
         precioAdulto,
-        precioNino
+        precioNino,
       },
-      minDate: today
+      minDate: today,
     });
   } catch (e) {
     res.status(500).send('Error al cargar el paquete: ' + e.message);
