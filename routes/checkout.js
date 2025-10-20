@@ -1,0 +1,2 @@
+import express from 'express'; import { checkout } from '../controllers/checkoutController.js'; import { requireAuth } from '../middleware/auth.js';
+const router = express.Router(); router.post('/', requireAuth, checkout); export default router;

@@ -1,0 +1,10 @@
+<% layout('partials/layout') %>
+<h2>Crear cuenta</h2>
+<form method="post" action="/register" class="card" style="max-width:540px">
+  <label>Nombre</label><input name="nombre" required>
+  <label>Email</label><input type="email" name="email" required>
+  <label>Teléfono</label><input name="telefono" required>
+  <label>Contraseña</label><input type="password" name="password" required>
+  <button class="btn" type="submit">Registrar</button>
+  <% if(typeof error!=='undefined'){ %><p style="color:#b00"><%= error %></p><% } %>
+</form>

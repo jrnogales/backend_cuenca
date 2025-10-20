@@ -1,0 +1,11 @@
+import express from 'express'; import cookieParser from 'cookie-parser'; import dotenv from 'dotenv'; import path from 'path'; import { fileURLToPath } from 'url';
+import paquetesRoutes from './routes/paquetes.js'; import authRoutes from './routes/auth.js'; import checkoutRoutes from './routes/checkout.js'; import { attachUser } from './middleware/auth.js'; import { attachSoap } from './soap/server.js';
+import ejs from 'ejs'; dotenv.config(); const app=express(); const __filename=fileURLToPath(import.meta.url); const __dirname=path.dirname(__filename);
+app.use(express.urlencoded({extended:true})); app.use(express.json()); app.use(cookieParser());
+app.use('/img', express.static(path.join(__dirname,'public/img'))); app.use('/css', express.static(path.join(__dirname,'public/css')));
+app.set('view engine','ejs'); app.set('views', path.join(__dirname,'views'));
+app.engine('ejs',(file,data,cb)=>{ data.layout=function(p){data._layoutFile=p+'.ejs';}; ejs.renderFile(file,data,{},(err,str)=>{ if(err) return cb(err); if(data._layoutFile){ ejs.renderFile(path.join(__dirname,'views',data._layoutFile),{...data, body:str},{},cb);} else cb(null,str); }); });
+app.use(attachUser);
+app.use('/', paquetesRoutes); app.use('/', authRoutes); app.use('/checkout', checkoutRoutes);
+attachSoap(app);
+const port=process.env.PORT||3000; app.listen(port, ()=> console.log('http://localhost:'+port+'  · WSDL: /soap/paquetes.wsdl'));

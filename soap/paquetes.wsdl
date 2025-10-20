@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://schemas.xmlsoap.org/wsdl/" xmlns:tns="urn:cuenca.paquetes" xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="urn:cuenca.paquetes" name="PaquetesService">
+  <types><xsd:schema targetNamespace="urn:cuenca.paquetes">
+    <xsd:element name="listarPaquetesRequest" type="xsd:anyType"/>
+    <xsd:element name="listarPaquetesResponse"><xsd:complexType><xsd:sequence>
+      <xsd:element name="paquete" minOccurs="0" maxOccurs="unbounded"><xsd:complexType><xsd:sequence>
+        <xsd:element name="packageId" type="xsd:string"/><xsd:element name="packageName" type="xsd:string"/><xsd:element name="adultPrice" type="xsd:decimal"/><xsd:element name="childPrice" type="xsd:decimal"/><xsd:element name="stock" type="xsd:int"/>
+      </xsd:sequence></xsd:complexType></xsd:element>
+    </xsd:sequence></xsd:complexType></xsd:element>
+    <xsd:element name="obtenerDetalleRequest"><xsd:complexType><xsd:sequence><xsd:element name="codigo" type="xsd:string"/></xsd:sequence></xsd:complexType></xsd:element>
+    <xsd:element name="obtenerDetalleResponse"><xsd:complexType><xsd:sequence>
+      <xsd:element name="codigo" type="xsd:string"/><xsd:element name="titulo" type="xsd:string"/><xsd:element name="descripcion" type="xsd:string"/><xsd:element name="adultPrice" type="xsd:decimal"/><xsd:element name="childPrice" type="xsd:decimal"/><xsd:element name="stock" type="xsd:int"/>
+    </xsd:sequence></xsd:complexType></xsd:element>
+    <xsd:element name="crearReservaRequest"><xsd:complexType><xsd:sequence>
+      <xsd:element name="codigo" type="xsd:string"/><xsd:element name="email" type="xsd:string"/><xsd:element name="fecha" type="xsd:string"/><xsd:element name="adultos" type="xsd:int"/><xsd:element name="ninos" type="xsd:int"/>
+    </xsd:sequence></xsd:complexType></xsd:element>
+    <xsd:element name="crearReservaResponse"><xsd:complexType><xsd:sequence>
+      <xsd:element name="ok" type="xsd:boolean"/><xsd:element name="codigoReserva" type="xsd:string"/><xsd:element name="mensaje" type="xsd:string"/>
+    </xsd:sequence></xsd:complexType></xsd:element>
+  </xsd:schema></types>
+  <message name="listarPaquetesInput"><part name="parameters" element="tns:listarPaquetesRequest"/></message>
+  <message name="listarPaquetesOutput"><part name="parameters" element="tns:listarPaquetesResponse"/></message>
+  <message name="obtenerDetalleInput"><part name="parameters" element="tns:obtenerDetalleRequest"/></message>
+  <message name="obtenerDetalleOutput"><part name="parameters" element="tns:obtenerDetalleResponse"/></message>
+  <message name="crearReservaInput"><part name="parameters" element="tns:crearReservaRequest"/></message>
+  <message name="crearReservaOutput"><part name="parameters" element="tns:crearReservaResponse"/></message>
+  <portType name="PaquetesPortType">
+    <operation name="listarPaquetes"><input message="tns:listarPaquetesInput"/><output message="tns:listarPaquetesOutput"/></operation>
+    <operation name="obtenerDetalle"><input message="tns:obtenerDetalleInput"/><output message="tns:obtenerDetalleOutput"/></operation>
+    <operation name="crearReserva"><input message="tns:crearReservaInput"/><output message="tns:crearReservaOutput"/></operation>
+  </portType>
+  <binding name="PaquetesBinding" type="tns:PaquetesPortType"><soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+    <operation name="listarPaquetes"><soap:operation soapAction="listarPaquetes"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="obtenerDetalle"><soap:operation soapAction="obtenerDetalle"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <operation name="crearReserva"><soap:operation soapAction="crearReserva"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+  </binding>
+  <service name="PaquetesService"><port name="PaquetesPort" binding="tns:PaquetesBinding"><soap:address location="REPLACE_ME_AT_RUNTIME"/></port></service>
+</definitions>

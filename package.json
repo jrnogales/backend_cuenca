@@ -1,0 +1,20 @@
+{
+  "name": "cuenca-paquetes",
+  "version": "1.0.0",
+  "description": "Paquetes turisticos Cuenca - MVC + Auth + SOAP + PostgreSQL",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "cookie-parser": "^1.4.6",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.11.5",
+    "soap": "^1.0.0"
+  }
+}

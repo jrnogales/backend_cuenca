@@ -1,0 +1,12 @@
+<% layout('partials/layout') %>
+<div class="grid">
+  <% paquetes.forEach(p=>{ %>
+    <div class="card">
+      <img src="/img/<%= p.imagen || 'cuenca1.png' %>" width="475" height="464" alt="<%= p.titulo %>"/>
+      <h2><%= p.titulo %></h2>
+      <p><%= p.descripcion %></p>
+      <p><b>Adulto:</b> $<%= Number(p.precio_adulto).toFixed(2) %> · <b>Niño:</b> $<%= Number(p.precio_nino).toFixed(2) %></p>
+      <a class="btn" href="/paquetes/<%= p.codigo %>">Ver</a>
+    </div>
+  <% }) %>
+</div>

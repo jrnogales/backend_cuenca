@@ -1,0 +1,28 @@
+<% layout('partials/layout') %>
+<div class="card" style="display:grid;grid-template-columns:475px 1fr;gap:24px">
+  <img src="/img/<%= paquete.imagen %>" width="475" height="464" alt="<%= paquete.titulo %>"/>
+  <div>
+    <h2><%= paquete.titulo %></h2>
+    <p><%= paquete.descripcion %></p>
+    <div class="card" style="margin:12px 0">
+      <div>Precio adulto: <b>$<span id="adultPrice"><%= paquete.precioAdulto.toFixed(2) %></span></b></div>
+      <div>Precio niño: <b>$<span id="childPrice"><%= paquete.precioNino.toFixed(2) %></span></b></div>
+    </div>
+    <form id="checkoutForm" method="post" action="/checkout">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <label>Fecha</label><input type="date" name="fecha" id="date" min="<%= minDate %>" required>
+        <label>Adultos</label><input type="number" id="adults" name="adultos" min="1" value="1">
+        <label>Niños</label><input type="number" id="children" name="ninos" min="0" value="0">
+      </div>
+      <input type="hidden" name="codigo" value="<%= paquete.codigo %>">
+      <div class="card" style="margin:12px 0">
+        <div>Adultos x <span id="adultsCount">1</span> → $ <span id="adultsSubtotal"></span></div>
+        <div>Niños x <span id="childrenCount">0</span> → $ <span id="childrenSubtotal"></span></div>
+        <div class="muted">IVA 12%: $ <span id="tax"></span></div>
+        <div class="muted">Subtotal: $ <span id="subtotal"></span></div>
+        <button class="btn" type="submit">Proceder al pago</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>(function(){const aP=parseFloat(document.getElementById('adultPrice').textContent);const cP=parseFloat(document.getElementById('childPrice').textContent);const aE=document.getElementById('adults');const cE=document.getElementById('children');function calc(){const a=Math.max(1,parseInt(aE.value||'1',10));const k=Math.max(0,parseInt(cE.value||'0',10));const sA=a*aP,sK=k*cP,sub=sA+sK,iva=Math.round(sub*0.12*100)/100;document.getElementById('adultsCount').textContent=a;document.getElementById('childrenCount').textContent=k;document.getElementById('adultsSubtotal').textContent=sA.toFixed(2);document.getElementById('childrenSubtotal').textContent=sK.toFixed(2);document.getElementById('tax').textContent=iva.toFixed(2);document.getElementById('subtotal').textContent=sub.toFixed(2);}aE.addEventListener('input',calc);cE.addEventListener('input',calc);calc();})();</script>

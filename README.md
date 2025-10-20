@@ -1,0 +1,1 @@
+# Cuenca Paquetes – Node.js\n1) `npm install`\n2) `.env` ya incluye tu DATABASE_URL (puedes cambiarlo).\n3) `npm run dev` → http://localhost:3000/  · SOAP WSDL: /soap/paquetes.wsdl\nDeploy en Render: Start `node server.js` y variables `DATABASE_URL`, `JWT_SECRET`.\n

@@ -1,0 +1,10 @@
+<% layout('partials/layout') %>
+<div class="card" style="max-width:620px">
+  <h2>Reserva confirmada</h2>
+  <p><b>Paquete:</b> <%= titulo %></p>
+  <p><b>Fecha viaje:</b> <%= fecha %></p>
+  <p><b>Pasajeros:</b> Adultos <%= adultos %> · Niños <%= ninos %></p>
+  <p><b>Total aprox:</b> $<%= total.toFixed(2) %></p>
+  <p><b>Código de reserva:</b> <%= codigoReserva %></p>
+  <a class="btn" href="/">Volver</a>
+</div>
