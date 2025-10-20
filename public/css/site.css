@@ -1,21 +1,194 @@
-.toolbar{max-width:1100px;margin:0 auto 18px;padding:8px 0}
-#filtros{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap}
-#filtros .group{display:flex;flex-direction:column;gap:6px}
-#filtros label{font-size:14px;color:#333}
-#filtros input,#filtros select{padding:8px 10px;border:1px solid #d0d0d0;border-radius:8px}
-#filtros .btn{padding:10px 16px;border:0;background:#eee;border-radius:10px;cursor:pointer}
-.btn-primary{padding:10px 14px;border:0;background:#1464e4;color:#fff;border-radius:10px;cursor:pointer}
+/* =======================
+   Estilos tipo Viator
+   ======================= */
 
-.grid{max-width:1100px;margin:0 auto 40px;display:grid;gap:18px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
-.card{border:1px solid #e7e7e7;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.04);display:flex;flex-direction:column}
-.imgwrap{aspect-ratio:4/3;background:#f4f4f4}
-.imgwrap img{width:100%;height:100%;object-fit:cover;display:block}
-.card-body{padding:14px;display:flex;flex-direction:column;gap:10px}
-.card .title{font-size:18px;margin:0}
-.card .meta{font-size:13px;color:#666}
-.price-row{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}
-.calc{display:flex;flex-direction:column;gap:8px}
-.calc .line{display:flex;align-items:center;gap:8px;justify-content:flex-end}
-.calc input[type="number"]{width:72px;padding:6px 8px;border:1px solid #ddd;border-radius:8px}
-.total{font-size:14px}
-.alert{max-width:1100px;margin:10px auto;padding:10px 14px;background:#fff3cd;border:1px solid #ffe69c;border-radius:10px}
+:root{
+  --container: 1200px;
+  --radius: 16px;
+  --radius-sm: 12px;
+  --bg: #fff;
+  --ink: #0f1115;
+  --muted: #5e6a75;
+  --line: #e9eef2;
+  --shadow: 0 4px 18px rgba(18, 24, 40, .06);
+  --primary: #1464e4;
+}
+
+/* contenedor general */
+.toolbar,
+.grid,
+.alert{
+  max-width: var(--container);
+  margin-inline: auto;
+}
+
+/* barra de filtros */
+.toolbar{
+  margin: 18px auto 22px;
+  padding: 12px 16px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+#filtros{
+  display: grid;
+  grid-template-columns: 1fr repeat(3, max-content);
+  gap: 14px 18px;
+  align-items: end;
+}
+#filtros .group{display:flex;flex-direction:column;gap:6px}
+#filtros label{font-size:13px;color:var(--muted)}
+#filtros input[type="date"],
+#filtros select{
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 15px;
+  background: #f9fbff;
+}
+#filtros .btn{
+  height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--line);
+  background: #f4f7fb;
+  border-radius: 10px;
+  cursor: pointer;
+}
+#filtros .btn:hover{background:#eef3fb}
+
+/* rejilla de tarjetas */
+.grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+  gap: 20px;
+  margin-bottom: 42px;
+}
+.card{
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 10px 28px rgba(18, 24, 40, .08);
+}
+
+/* imagen grande 4:3 */
+.imgwrap{
+  aspect-ratio: 4/3;
+  background: #f2f4f7;
+}
+.imgwrap img{
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* cuerpo de la tarjeta */
+.card-body{
+  padding: 14px 16px 16px;
+  display: grid;
+  gap: 8px;
+}
+.card .title{
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.25;
+  color: var(--ink);
+  /* 2 líneas máx */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.card .meta{
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* bloque precios + compra */
+.price-row{
+  margin-top: 6px;
+  display: grid;
+  grid-template-columns: 1fr max-content;
+  align-items: end;
+  gap: 10px 14px;
+}
+.price-row small{color:var(--muted)}
+.price-adult,.price-child{font-weight:600}
+
+.buy{
+  display: grid;
+  gap: 8px;
+  align-items: end;
+}
+.calc{
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  gap: 8px 12px;
+  justify-content: end;
+}
+.calc .line{
+  display:flex;
+  align-items:center;
+  gap: 8px;
+}
+.calc input[type="number"]{
+  width: 76px;
+  height: 36px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  background:#fbfdff;
+}
+.total{
+  grid-column: 1 / -1;
+  text-align: right;
+  font-size: 14px;
+}
+.total strong{font-size:16px}
+
+.btn-primary{
+  height: 40px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter .15s ease, transform .02s ease;
+}
+.btn-primary:hover{filter: brightness(1.05)}
+.btn-primary:active{transform: translateY(1px)}
+
+/* mensaje */
+.alert{
+  margin-top: 6px;
+  margin-bottom: 18px;
+  padding: 12px 14px;
+  background: #fff7db;
+  border: 1px solid #ffe69c;
+  border-radius: 12px;
+  color: #6b5600;
+}
+
+/* responsive suave */
+@media (max-width: 720px){
+  #filtros{
+    grid-template-columns: 1fr 1fr;
+  }
+  .calc{
+    grid-template-columns: 1fr 1fr;
+    justify-content: stretch;
+  }
+  .btn-primary{width:100%}
+}
