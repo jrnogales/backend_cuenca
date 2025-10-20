@@ -1,4 +1,4 @@
-import { createUser, findUserByEmail } from '../models/Usuario.js'; import bcrypt from 'bcrypt'; import jwt from 'jsonwebtoken';
+import { createUser, findUserByEmail } from '../models/Usuario.js'; import bcrypt from 'bcryptjs'; import jwt from 'jsonwebtoken';
 export async function showRegister(req,res){ res.render('register'); }
 export async function showLogin(req,res){ res.render('login'); }
 export async function register(req,res){ const { nombre,email,telefono,password } = req.body;
