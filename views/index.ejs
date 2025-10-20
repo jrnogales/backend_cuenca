@@ -1,16 +1,14 @@
 <% layout('partials/layout') %>
 
-<div class="container">
-
-  <!-- Barra de filtros -->
-  <section class="filters-bar">
-    <div>
-      <label for="f-fecha">Fecha</label>
+<section class="toolbar">
+  <form id="filtros" onsubmit="event.preventDefault()">
+    <div class="group">
+      <label>Seleccionar fechas</label>
       <input type="date" id="f-fecha">
     </div>
 
-    <div>
-      <label for="f-adultos">Adultos</label>
+    <div class="group">
+      <label>Adultos</label>
       <select id="f-adultos">
         <% for (let i=1;i<=10;i++){ %>
           <option value="<%= i %>" <%= i===2?'selected':'' %>><%= i %></option>
@@ -18,159 +16,133 @@
       </select>
     </div>
 
-    <div>
-      <label for="f-ninos">Niños</label>
+    <div class="group">
+      <label>Niños</label>
       <select id="f-ninos">
         <% for (let i=0;i<=10;i++){ %>
-          <option value="<%= i %>" <%= i===1?'selected':'' %>><%= i %></option>
+          <option value="<%= i %>"><%= i %></option>
         <% } %>
       </select>
     </div>
 
-    <button id="btn-aplicar" class="btn-apply">Aplicar</button>
-  </section>
+    <button id="btn-aplicar" class="btn-primary outline">Aplicar</button>
+  </form>
+</section>
 
-  <!-- Mensajes -->
-  <% if (error) { %>
-    <div class="alert" style="margin-bottom:16px; background:#fff1f2; border:1px solid #ffe4e6; color:#9f1239; border-radius:12px; padding:12px 14px;">
-      <%= error %>
-    </div>
-  <% } %>
+<% if (error) { %>
+  <div class="notice error"><%= error %></div>
+<% } %>
 
-  <% if (!paquetes || paquetes.length===0) { %>
-    <div class="alert" style="margin-bottom:16px; background:#f1f5f9; border:1px solid #e2e8f0; color:#475569; border-radius:12px; padding:12px 14px;">
-      No hay paquetes disponibles por ahora.
-    </div>
-  <% } %>
+<% if (!paquetes || paquetes.length===0) { %>
+  <div class="notice">No hay paquetes disponibles por ahora.</div>
+<% } %>
 
-  <!-- Rejilla de tarjetas -->
-  <section class="grid">
-    <% (paquetes || []).forEach(p => { %>
-      <article class="card"
-               data-adulto="<%= Number(p.precio_adulto) %>"
-               data-nino="<%= Number(p.precio_nino) %>">
+<section class="cards">
+  <% (paquetes||[]).forEach(p => { 
+      const pa = Number(p.precio_adulto||0);
+      const pn = Number(p.precio_nino||0);
+  %>
+    <article class="card" 
+      data-id="<%= p.codigo %>" 
+      data-pa="<%= pa %>" 
+      data-pn="<%= pn %>">
 
-        <!-- Imagen -->
-        <div class="card__media">
-          <img
-            src="<%= p.imagen ? ('/img/'+p.imagen) : '/img/noimg.jpg' %>"
-            alt="<%= p.titulo %>"
-            loading="lazy">
-          <!-- <span class="badge">Lo más vendido</span> -->
-        </div>
+      <div class="pic">
+        <img src="<%= p.imagen ? ('/img/'+p.imagen) : '/img/noimg.jpg' %>" alt="<%= p.titulo %>" loading="lazy">
+      </div>
 
-        <!-- Cuerpo -->
-        <div class="card__body">
-          <h3 class="card__title"><%= p.titulo %></h3>
-          <div class="card__meta">
-            <%= p.ciudad || 'Cuenca' %> · <%= p.duracion_dias || 1 %> días
+      <div class="card-body">
+        <h3 class="title"><%= p.titulo %></h3>
+
+        <p class="meta">
+          <span class="dot"></span> 
+          <%= p.ciudad || 'Cuenca' %> · 
+          <%= (p.duracion_dias||1) %> horas
+        </p>
+
+        <ul class="perks">
+          <li><span class="icon">✔</span> Cancelación gratuita</li>
+          <li><span class="icon">🕒</span> <%= (p.duracion_horas|| (p.duracion_dias||1)*8) %> h</li>
+        </ul>
+
+        <div class="divider"></div>
+
+        <div class="price-n-cta">
+          <div class="prices">
+            <div class="from">a partir de</div>
+            <div class="usd">$<%= pa.toFixed(2) %> <span class="suffix">US$</span></div>
+            <div class="note">El precio varía en función del número de personas por grupo</div>
           </div>
 
-          <!-- Precios base -->
-          <div class="price-base">
-            <small>Desde</small>
-            <div>Adulto: $<%= Number(p.precio_adulto).toFixed(2) %></div>
-            <div>Niño: $<%= Number(p.precio_nino).toFixed(2) %></div>
-          </div>
-
-          <!-- Cantidades -->
-          <div class="qty-row">
-            <label>Adultos</label>
-            <select class="sel-adultos">
-              <% for(let i=1;i<=10;i++){ %>
-                <option value="<%= i %>" <%= i===2?'selected':'' %>><%= i %></option>
-              <% } %>
-            </select>
-
-            <label style="text-align:right;">Niños</label>
-            <select class="sel-ninos">
-              <% for(let i=0;i<=10;i++){ %>
-                <option value="<%= i %>" <%= i===1?'selected':'' %>><%= i %></option>
-              <% } %>
-            </select>
-          </div>
-
-          <!-- Total -->
-          <div class="total-row">
-            <span class="label">Total</span>
-            <span class="amount">$<span class="num-total">0.00</span></span>
-          </div>
-        </div>
-
-        <!-- CTA / Checkout -->
-        <div class="card__cta">
           <form class="buy" method="POST" action="/checkout">
-            <input type="hidden" name="paqueteId" value="<%= p.codigo %>">
-            <input type="hidden" name="fecha" class="h-fecha">
-            <input type="hidden" name="adultos" class="h-adultos">
-            <input type="hidden" name="ninos" class="h-ninos">
-            <input type="hidden" name="total" class="h-total">
-            <button class="btn-primary" type="submit">Comprar</button>
+            <input type="hidden" name="paqueteId" class="h-id" value="<%= p.codigo %>">
+            <input type="hidden" name="fecha"      class="h-fecha">
+            <input type="hidden" name="adultos"    class="h-adultos">
+            <input type="hidden" name="ninos"      class="h-ninos">
+            <input type="hidden" name="total"      class="h-total">
+
+            <div class="qty">
+              <label>Adultos</label>
+              <input type="number" class="in-adultos" min="1" max="20" value="2">
+            </div>
+            <div class="qty">
+              <label>Niños</label>
+              <input type="number" class="in-ninos" min="0" max="20" value="0">
+            </div>
+
+            <div class="total">Total: <strong class="total-val">$0.00</strong></div>
+            <button class="btn-primary">Comprar</button>
           </form>
         </div>
-      </article>
-    <% }) %>
-  </section>
-</div>
+      </div>
+    </article>
+  <% }) %>
+</section>
 
-<!-- JS: sincroniza filtros y calcula totales -->
 <script>
-(function(){
-  const $adultSel = document.getElementById('f-adultos');
-  const $ninoSel  = document.getElementById('f-ninos');
-  const $fecha    = document.getElementById('f-fecha');
-  const $apply    = document.getElementById('btn-aplicar');
+  (function(){
+    const $adultSel = document.getElementById('f-adultos');
+    const $ninoSel  = document.getElementById('f-ninos');
+    const $fecha    = document.getElementById('f-fecha');
+    const $apply    = document.getElementById('btn-aplicar');
 
-  function recalc(card){
-    const pa = Number(card.dataset.adulto || 0);
-    const pn = Number(card.dataset.nino || 0);
-    const ad = Number(card.querySelector('.sel-adultos')?.value || 1);
-    const ni = Number(card.querySelector('.sel-ninos')?.value || 0);
-    const total = ad*pa + ni*pn;
+    function calcCard(card){
+      const pa = parseFloat(card.dataset.pa || '0');
+      const pn = parseFloat(card.dataset.pn || '0');
+      const inA = card.querySelector('.in-adultos');
+      const inN = card.querySelector('.in-ninos');
+      const totalEl = card.querySelector('.total-val');
 
-    // pinta total
-    const out = card.querySelector('.num-total');
-    if (out) out.textContent = total.toFixed(2);
+      const A = Math.max(1, parseInt(inA.value || '1', 10));
+      const N = Math.max(0, parseInt(inN.value || '0', 10));
+      const total = A*pa + N*pn;
 
-    // set hidden inputs para el POST
-    const form = card.querySelector('form.buy');
-    if (form){
-      form.querySelector('.h-adultos').value = ad;
-      form.querySelector('.h-ninos').value   = ni;
-      form.querySelector('.h-fecha').value   = $fecha.value || '';
-      form.querySelector('.h-total').value   = total.toFixed(2);
+      totalEl.textContent = '$' + total.toFixed(2);
+
+      card.querySelector('.h-adultos').value = A;
+      card.querySelector('.h-ninos').value   = N;
+      card.querySelector('.h-fecha').value   = $fecha.value || '';
+      card.querySelector('.h-total').value   = total.toFixed(2);
     }
-  }
 
-  // Inicializa cada card y listeners
-  document.querySelectorAll('.card').forEach(card=>{
-    // set desde filtros
-    const selA = card.querySelector('.sel-adultos');
-    const selN = card.querySelector('.sel-ninos');
-    if (selA) selA.value = $adultSel.value;
-    if (selN) selN.value = $ninoSel.value;
-
-    recalc(card);
-
-    card.querySelectorAll('.sel-adultos,.sel-ninos').forEach(el=>{
-      el.addEventListener('change', ()=>recalc(card));
-    });
-
-    const form = card.querySelector('form.buy');
-    if (form){
-      form.addEventListener('submit', ()=>recalc(card)); // asegura hiddens
-    }
-  });
-
-  // Botón aplicar sincroniza todos
-  $apply?.addEventListener('click', ()=>{
     document.querySelectorAll('.card').forEach(card=>{
-      const selA = card.querySelector('.sel-adultos');
-      const selN = card.querySelector('.sel-ninos');
-      if (selA) selA.value = $adultSel.value;
-      if (selN) selN.value = $ninoSel.value;
-      recalc(card);
+      // sync con la toolbar
+      card.querySelector('.in-adultos').value = parseInt($adultSel.value, 10);
+      card.querySelector('.in-ninos').value   = parseInt($ninoSel.value, 10);
+      calcCard(card);
+
+      // listeners
+      card.querySelector('.in-adultos').addEventListener('input', ()=>calcCard(card));
+      card.querySelector('.in-ninos').addEventListener('input', ()=>calcCard(card));
+      card.querySelector('form.buy').addEventListener('submit', ()=>calcCard(card));
     });
-  });
-})();
+
+    $apply.addEventListener('click', ()=>{
+      document.querySelectorAll('.card').forEach(card=>{
+        card.querySelector('.in-adultos').value = parseInt($adultSel.value,10);
+        card.querySelector('.in-ninos').value   = parseInt($ninoSel.value,10);
+        calcCard(card);
+      });
+    });
+  })();
 </script>

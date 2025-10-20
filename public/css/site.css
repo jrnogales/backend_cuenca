@@ -1,212 +1,114 @@
-/* ============ Variables y base ============ */
 :root{
-  --bg: #f7f8fb;
-  --card: #ffffff;
-  --border: #e8e9ef;
-  --muted: #6b7280;
-  --text: #111827;
-  --primary: #1a73e8;      /* azul principal */
-  --primary-500: #1565d8;
-  --primary-600: #0f5ac4;
-  --accent: #22c55e;       /* verde para totales */
-  --shadow: 0 6px 18px rgba(17,24,39,.08);
+  --bg: #ffffff;
+  --text: #1f2937;
+  --muted:#6b7280;
+  --line:#e5e7eb;
+  --brand:#106BFD;         /* acento azul */
+  --brand-ink:#0b4db3;
+  --pill:#eef3ff;
+  --card:#fff;
+  --shadow: 0 10px 25px rgba(0,0,0,.05);
   --radius: 16px;
 }
 
 *{box-sizing:border-box}
-html,body{height:100%}
-body{
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji","Segoe UI Emoji";
-  margin:0;
-  color:var(--text);
-  background:var(--bg);
+html,body{
+  margin:0; padding:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+  color:var(--text); background:var(--bg);
 }
 
-/* Contenedor principal */
-.container{
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 28px 20px 56px;
+/* ---------- Toolbar ---------- */
+.toolbar{
+  max-width:1200px; margin:24px auto 8px; padding:8px 16px;
 }
-
-/* ============ Barra de filtros ============ */
-.filters-bar{
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 18px;
-  margin-bottom: 26px;
-  display: grid;
-  grid-template-columns: 1fr repeat(3, 160px) 120px;
-  gap: 12px;
-  align-items: center;
+#filtros{
+  display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;
 }
-.filters-bar label{
-  font-size: 13px;
-  color: var(--muted);
-  display:block;
-  margin-bottom: 6px;
-}
-.filters-bar input[type="date"],
-.filters-bar select{
-  width: 100%;
-  height: 42px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0 12px;
-  background: #fff;
-  color: var(--text);
-  outline: none;
-}
-.filters-bar .btn-apply{
-  height: 42px;
-  border: none;
-  border-radius: 12px;
-  background: var(--primary);
-  color: #fff;
-  font-weight: 600;
-  cursor: pointer;
-}
-.filters-bar .btn-apply:hover{ background: var(--primary-500); }
-
-@media (max-width: 960px){
-  .filters-bar{ grid-template-columns: 1fr 1fr; }
-}
-@media (max-width: 560px){
-  .filters-bar{ grid-template-columns: 1fr; }
-}
-
-/* ============ Rejilla de tarjetas ============ */
-.grid{
-  display: grid;
-  gap: 28px;
-  grid-template-columns: repeat(auto-fit,minmax(320px,1fr));
-}
-
-/* ============ Tarjeta ============ */
-.card{
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  transition: transform .2s ease, box-shadow .2s ease;
-}
-.card:hover{ transform: translateY(-2px); box-shadow: 0 10px 24px rgba(17,24,39,.10); }
-
-/* Imagen */
-.card__media{
-  position: relative;
-  background: #eef2f7;
-  height: 220px;         /* controla altura visual */
-  overflow: hidden;
-}
-.card__media img{
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-/* Cuerpo */
-.card__body{
-  padding: 18px 18px 16px;
-  display: grid;
-  gap: 10px;
-}
-.card__title{
-  font-size: 18px;
-  line-height: 1.35;
-  margin: 2px 0 0;
-  font-weight: 700;
-}
-.card__meta{
-  color: var(--muted);
-  font-size: 13px;
-}
-
-/* Precio base (“Desde”) */
-.price-base{
-  background: #f9fafb;
-  border: 1px dashed var(--border);
-  border-radius: 12px;
-  padding: 12px;
-  display: grid;
-  gap: 4px;
-  font-size: 14px;
-}
-.price-base small{ color: var(--muted); }
-
-/* Selección de cantidades */
-.qty-row{
-  display: grid;
-  grid-template-columns: 1fr 110px 110px;
-  gap: 12px;
-  align-items: center;
-}
-.qty-row label{ font-size: 14px; color: var(--muted); }
-.qty-row select{
-  height: 40px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 0 10px;
-  background: #fff;
-  outline: none;
-}
-
-/* Total destacado */
-.total-row{
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #f0fdf4;
-  border: 1px solid #dcfce7;
-  border-radius: 12px;
-  padding: 12px 14px;
-}
-.total-row .label{ color:#059669; font-weight:600; }
-.total-row .amount{
-  font-size: 18px;
-  font-weight: 800;
-  color: var(--accent);
-}
-
-/* CTA */
-.card__cta{
-  padding: 16px 18px 20px;
+.group{ display:flex; flex-direction:column; gap:6px }
+.group label{ font-size:.9rem; color:var(--muted) }
+.group input[type="date"],
+.group select{
+  height:40px; padding:0 12px; border:1px solid var(--line);
+  border-radius:12px; background:#fff; color:var(--text);
 }
 .btn-primary{
-  width: 100%;
-  height: 46px;
-  border: none;
-  border-radius: 12px;
-  background: var(--primary);
-  color: #fff;
-  font-weight: 700;
-  letter-spacing:.2px;
-  cursor: pointer;
+  height:40px; border:none; border-radius:12px; padding:0 16px;
+  background:var(--brand); color:#fff; font-weight:600; cursor:pointer;
+  box-shadow:var(--shadow);
 }
-.btn-primary:hover{ background: var(--primary-600); }
+.btn-primary:hover{ background:var(--brand-ink) }
+.btn-primary.outline{
+  background:#fff; color:var(--brand); border:1px solid var(--brand);
+}
+.btn-primary.outline:hover{ background:var(--pill) }
 
-/* Helpers */
-.badge{
-  position:absolute; top:12px; left:12px;
-  background: rgba(17,24,39,.8);
-  color:#fff; font-size:12px;
-  padding:6px 8px; border-radius:10px;
+/* ---------- Notices ---------- */
+.notice{
+  max-width:1200px; margin:12px auto; padding:14px 16px;
+  background:#f3f4f6; border:1px solid var(--line); color:#111827;
+  border-radius:12px;
+}
+.notice.error{ background:#fff2f2; border-color:#ffd1d1; color:#b91c1c }
+
+/* ---------- Grid ---------- */
+.cards{
+  max-width:1200px; margin:12px auto 48px; padding:0 16px;
+  display:grid; gap:18px;
+  grid-template-columns: repeat(12, 1fr);
+}
+.card{
+  grid-column: span 12;
+  background:var(--card); border:1px solid var(--line); border-radius:var(--radius);
+  overflow:hidden; box-shadow:var(--shadow);
+  display:flex; flex-direction:column;
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.card:hover{ transform:translateY(-2px); box-shadow:0 14px 30px rgba(0,0,0,.08) }
+
+.pic{ aspect-ratio:16/9; background:#f8fafc; display:block; overflow:hidden }
+.pic img{ width:100%; height:100%; object-fit:cover; display:block }
+
+.card-body{ padding:16px 16px 14px }
+
+.title{ margin:0 0 6px; font-size:1.1rem; line-height:1.3 }
+.meta{ margin:0; color:var(--muted); font-size:.92rem }
+.meta .dot{
+  display:inline-block; width:8px; height:8px; border-radius:50%;
+  background:#10b981; margin-right:6px; transform:translateY(-1px);
 }
 
-/* Cabecera / nav (si usas) */
-.header{
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 18px 20px 0;
+.perks{ list-style:none; padding:0; margin:12px 0 0; color:var(--muted); font-size:.9rem }
+.perks li{ display:flex; gap:8px; align-items:center; margin:4px 0 }
+.perks .icon{ width:20px; text-align:center; color:#10b981; font-weight:700 }
+
+.divider{
+  height:1px; background:var(--line); margin:14px 0;
 }
-.nav a{
-  font-size: 14px;
-  color: var(--primary);
-  text-decoration: none;
+
+.price-n-cta{
+  display:grid; grid-template-columns: 1fr auto; align-items:end; gap:16px;
 }
-.nav a + a::before{ content:"·"; color:var(--muted); margin:0 8px; }
+.prices .from{ color:var(--muted); font-size:.86rem }
+.prices .usd{ font-size:1.3rem; font-weight:800; margin:2px 0 }
+.prices .suffix{ font-weight:700; color:var(--muted); margin-left:4px }
+.prices .note{ color:var(--muted); font-size:.8rem }
+
+.buy{ display:grid; grid-template-columns: repeat(2, 1fr); gap:10px; align-items:end }
+.qty{ display:flex; flex-direction:column; gap:4px }
+.qty input{
+  height:40px; padding:0 10px; border:1px solid var(--line); border-radius:12px;
+}
+.total{
+  grid-column: span 2;
+  background:var(--pill); color:var(--brand-ink); font-weight:700;
+  padding:10px 12px; border-radius:12px; text-align:center;
+}
+
+/* ---------- Responsive columns ---------- */
+@media (min-width:640px){
+  .card{ grid-column: span 6; }
+}
+@media (min-width:980px){
+  .card{ grid-column: span 4; }
+}
