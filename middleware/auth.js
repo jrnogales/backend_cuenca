@@ -1,18 +1,25 @@
+// middleware/auth.js
 import jwt from 'jsonwebtoken';
-export function requireAuth(req,res,next){ try{ const t=req.cookies?.token; if(!t) return res.redirect('/login'); const d=jwt.verify(t,process.env.JWT_SECRET); req.user=d; next(); }catch(e){ return res.redirect('/login'); } }
-export function attachUser(req,res,next){ try{ const t=req.cookies?.token; if(t){ const d=jwt.verify(t,process.env.JWT_SECRET); req.user=d; res.locals.user=d; } }catch(e){} next(); }
 
-// ... tu attachUser arriba
+/** Adjunta user si hay cookie token; no bloquea el paso */
+export function attachUser(req, res, next) {
+  const token = req.cookies?.token;
+  if (!token) {
+    req.user = null;
+    return next();
+  }
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+  } catch {
+    req.user = null;
+  }
+  next();
+}
 
-// Requiere usuario autenticado; si no, redirige a /login con msg y next
+/** Protege rutas: si no hay sesión, redirige a /login con msg+next */
 export function requireAuth(req, res, next) {
   if (req.user) return next();
-
-  const nextUrl =
-    req.method === 'GET'
-      ? req.originalUrl
-      : (req.get('referer') || '/');
-
-  const msg = encodeURIComponent('Debes iniciar sesión para continuar.');
-  return res.redirect(`/login?msg=${msg}&next=${encodeURIComponent(nextUrl)}`);
+  const msg = encodeURIComponent('Debes iniciar sesión para continuar');
+  const nextUrl = encodeURIComponent(req.originalUrl || '/');
+  return res.redirect(`/login?msg=${msg}&next=${nextUrl}`);
 }
