@@ -4,6 +4,10 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import soap from 'soap';
 
+import checkoutRoutes from '../routes/checkout.js';
+
+
+
 // Modelos y lógica de negocio
 import { listPaquetes, getPaqueteByCodigo } from '../models/Paquete.js';
 // 👇 Import correcto: usar la función que ya crea reservas en tu controlador

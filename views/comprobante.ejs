@@ -1,10 +1,27 @@
 <% layout('partials/layout') %>
-<div class="card" style="max-width:620px">
-  <h2>Reserva confirmada</h2>
-  <p><b>Paquete:</b> <%= titulo %></p>
-  <p><b>Fecha viaje:</b> <%= fecha %></p>
+
+<div class="card" style="max-width:640px;margin:auto;text-align:center">
+  <h2>🎉 Reserva confirmada</h2>
+
+  <p><b>Paquete:</b> <%= paquete.titulo %></p>
+  <p><b>Fecha del viaje:</b> <%= fecha %></p>
   <p><b>Pasajeros:</b> Adultos <%= adultos %> · Niños <%= ninos %></p>
-  <p><b>Total aprox:</b> $<%= total.toFixed(2) %></p>
-  <p><b>Código de reserva:</b> <%= codigoReserva %></p>
-  <a class="btn" href="/">Volver</a>
+  <p><b>Total:</b> $<%= total.toFixed(2) %></p>
+  <p><b>Código de reserva:</b> <span style="color:#1b7af3"><%= codigo %></span></p>
+
+  <div style="margin-top:24px;display:flex;justify-content:center;gap:12px">
+    <a href="/" class="btn">← Volver al inicio</a>
+
+    <!-- Formulario para cancelar reserva -->
+    <form method="POST" action="/checkout/cancelar/<%= codigo %>" onsubmit="return confirmCancel()">
+      <button class="btn btn-danger" type="submit">Cancelar reserva</button>
+    </form>
+  </div>
 </div>
+
+<script>
+  // Confirmación antes de cancelar
+  function confirmCancel() {
+    return confirm("¿Seguro que deseas cancelar esta reserva?\nSe liberarán los cupos correspondientes.");
+  }
+</script>

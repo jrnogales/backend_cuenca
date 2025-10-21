@@ -1,12 +1,29 @@
+// routes/checkoutRoutes.js
 import express from 'express';
-import { showCheckout, crearReserva } from '../controllers/checkoutController.js';
-import { requireAuth } from '../middleware/auth.js';
+import {
+  showCheckout,
+  crearReserva,
+  cancelarReserva
+} from '../controllers/checkoutController.js';
 
 const router = express.Router();
 
+/**
+ * 🧭 Mostrar el checkout (detalle) de un paquete
+ * Ejemplo: GET /checkout/CODIGO123
+ */
 router.get('/:codigo', showCheckout);
-// Si quieres permitir reservar sin login, quita requireAuth temporalmente
-router.post('/', /* requireAuth, */ crearReserva);
+
+/**
+ * 🧾 Crear una nueva reserva
+ * Ejemplo: POST /checkout
+ */
+router.post('/', crearReserva);
+
+/**
+ * ❌ Cancelar una reserva existente
+ * Ejemplo: POST /checkout/cancelar/RES-20251019-ABCD
+ */
+router.post('/cancelar/:codigo', cancelarReserva);
 
 export default router;
-
