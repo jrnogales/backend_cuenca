@@ -48,7 +48,7 @@
       data-pn="<%= pn %>">
 
       <div class="pic">
-        <!-- SOLO URL desde la BD -->
+        <!-- Usar solo URL alojada en BD -->
         <img src="<%= p.imagen || '' %>" alt="<%= p.titulo %>" loading="lazy">
       </div>
 
@@ -76,11 +76,12 @@
           </div>
 
           <form class="buy" method="POST" action="/checkout">
-            <input type="hidden" name="paqueteId" class="h-id" value="<%= p.codigo %>">
-            <input type="hidden" name="fecha"      class="h-fecha">
-            <input type="hidden" name="adultos"    class="h-adultos">
-            <input type="hidden" name="ninos"      class="h-ninos">
-            <input type="hidden" name="total"      class="h-total">
+            <!-- CORREGIDO: el backend espera "codigo" -->
+            <input type="hidden" name="codigo"   class="h-id"    value="<%= p.codigo %>">
+            <input type="hidden" name="fecha"    class="h-fecha">
+            <input type="hidden" name="adultos"  class="h-adultos">
+            <input type="hidden" name="ninos"    class="h-ninos">
+            <input type="hidden" name="total"    class="h-total">
 
             <div class="qty">
               <label>Adultos</label>
