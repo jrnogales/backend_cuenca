@@ -3,16 +3,15 @@
   xmlns="http://schemas.xmlsoap.org/wsdl/"
   xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
   xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  xmlns:tns="urn:cuenca.integracion"
   targetNamespace="urn:cuenca.integracion"
-  xmlns:tns="urn:cuenca.integracion">
+  name="IntegracionService">
 
   <types>
     <xsd:schema targetNamespace="urn:cuenca.integracion">
-
+      <!-- ===== Tipos base ===== -->
       <xsd:complexType name="Filtros">
         <xsd:sequence>
-          <xsd:element name="ciudad"    type="xsd:string"  minOccurs="0"/>
-          <xsd:element name="fecha"     type="xsd:string"  minOccurs="0"/>
           <xsd:element name="minPrecio" type="xsd:decimal" minOccurs="0"/>
           <xsd:element name="maxPrecio" type="xsd:decimal" minOccurs="0"/>
         </xsd:sequence>
@@ -27,72 +26,91 @@
           <xsd:element name="currency"      type="xsd:string"/>
           <xsd:element name="durationDays"  type="xsd:int"/>
           <xsd:element name="agencyName"    type="xsd:string"/>
-          <xsd:element name="imageUrl"      type="xsd:string" minOccurs="0"/>
-          <xsd:element name="description"   type="xsd:string" minOccurs="0"/>
+          <xsd:element name="imageUrl"      type="xsd:string"/>
+          <xsd:element name="description"   type="xsd:string"/>
           <xsd:element name="stock"         type="xsd:int"/>
         </xsd:sequence>
       </xsd:complexType>
 
       <xsd:complexType name="ItemCotiza">
         <xsd:sequence>
-          <xsd:element name="codigo"   type="xsd:string"/>
-          <xsd:element name="adultos"  type="xsd:int"/>
-          <xsd:element name="ninos"    type="xsd:int"/>
-          <xsd:element name="fecha"    type="xsd:string"/>
+          <xsd:element name="codigo"  type="xsd:string"/>
+          <xsd:element name="adultos" type="xsd:int"/>
+          <xsd:element name="ninos"   type="xsd:int"/>
         </xsd:sequence>
       </xsd:complexType>
 
-      <!-- buscarServicios -->
+      <!-- ===== Requests / Responses ===== -->
       <xsd:element name="buscarServiciosRequest">
-        <xsd:complexType><xsd:sequence><xsd:element name="filtros" type="tns:Filtros"/></xsd:sequence></xsd:complexType>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="filtros" type="tns:Filtros" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
       </xsd:element>
       <xsd:element name="buscarServiciosResponse">
-        <xsd:complexType><xsd:sequence><xsd:element name="servicio" type="tns:Servicio" minOccurs="0" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="servicio" type="tns:Servicio" minOccurs="0" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
       </xsd:element>
 
-      <!-- obtenerDetalleServicio -->
       <xsd:element name="obtenerDetalleServicioRequest">
-        <xsd:complexType><xsd:sequence><xsd:element name="idServicio" type="xsd:string"/></xsd:sequence></xsd:complexType>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="idServicio" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
       </xsd:element>
       <xsd:element name="obtenerDetalleServicioResponse">
-        <xsd:complexType><xsd:sequence><xsd:element name="servicio" type="tns:Servicio"/></xsd:sequence></xsd:complexType>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="servicio" type="tns:Servicio" minOccurs="0"/>
+          </xsd:sequence>
+        </xsd:complexType>
       </xsd:element>
 
-      <!-- verificarDisponibilidad -->
       <xsd:element name="verificarDisponibilidadRequest">
         <xsd:complexType>
           <xsd:sequence>
             <xsd:element name="sku"      type="xsd:string"/>
-            <xsd:element name="inicio"   type="xsd:string"/>
-            <xsd:element name="fin"      type="xsd:string"/>
+            <xsd:element name="inicio"   type="xsd:string" minOccurs="0"/>
+            <xsd:element name="fin"      type="xsd:string" minOccurs="0"/>
             <xsd:element name="unidades" type="xsd:int"/>
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
       <xsd:element name="verificarDisponibilidadResponse">
-        <xsd:complexType><xsd:sequence><xsd:element name="ok" type="xsd:boolean"/></xsd:sequence></xsd:complexType>
-      </xsd:element>
-
-      <!-- cotizarReserva -->
-      <xsd:element name="cotizarReservaRequest">
-        <xsd:complexType><xsd:sequence><xsd:element name="item" type="tns:ItemCotiza" minOccurs="1" maxOccurs="unbounded"/></xsd:sequence></xsd:complexType>
-      </xsd:element>
-      <xsd:element name="cotizarReservaResponse">
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element name="total"      type="xsd:decimal"/>
-            <xsd:element name="breakdown"  type="xsd:string" minOccurs="0"/>
+            <xsd:element name="ok" type="xsd:boolean"/>
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
 
-      <!-- crearPreReserva -->
+      <xsd:element name="cotizarReservaRequest">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="item" type="tns:ItemCotiza" minOccurs="1" maxOccurs="unbounded"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="cotizarReservaResponse">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="total"     type="xsd:string"/>
+            <xsd:element name="breakdown" type="xsd:string"/>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element>
+
       <xsd:element name="crearPreReservaRequest">
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element name="itinerario"  type="xsd:string"/>
-            <xsd:element name="cliente"     type="xsd:string"/>
-            <xsd:element name="holdMinutes" type="xsd:int"/>
+            <xsd:element name="itinerario" type="xsd:string" minOccurs="0"/>
+            <xsd:element name="cliente"    type="xsd:string" minOccurs="0"/>
+            <xsd:element name="holdMinutes" type="xsd:int"   minOccurs="0"/>
             <xsd:element name="idemKey"     type="xsd:string" minOccurs="0"/>
           </xsd:sequence>
         </xsd:complexType>
@@ -106,12 +124,11 @@
         </xsd:complexType>
       </xsd:element>
 
-      <!-- confirmarReserva -->
       <xsd:element name="confirmarReservaRequest">
         <xsd:complexType>
           <xsd:sequence>
             <xsd:element name="preBookingId" type="xsd:string"/>
-            <xsd:element name="metodoPago"   type="xsd:string"/>
+            <xsd:element name="metodoPago"   type="xsd:string" minOccurs="0"/>
             <xsd:element name="datosPago"    type="xsd:string" minOccurs="0"/>
           </xsd:sequence>
         </xsd:complexType>
@@ -125,7 +142,6 @@
         </xsd:complexType>
       </xsd:element>
 
-      <!-- cancelarReservaIntegracion -->
       <xsd:element name="cancelarReservaIntegracionRequest">
         <xsd:complexType>
           <xsd:sequence>
@@ -135,13 +151,17 @@
         </xsd:complexType>
       </xsd:element>
       <xsd:element name="cancelarReservaIntegracionResponse">
-        <xsd:complexType><xsd:sequence><xsd:element name="ok" type="xsd:boolean"/></xsd:sequence></xsd:complexType>
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="ok" type="xsd:boolean"/>
+          </xsd:sequence>
+        </xsd:complexType>
       </xsd:element>
 
     </xsd:schema>
   </types>
 
-  <!-- Mensajes -->
+  <!-- ===== Mensajes ===== -->
   <message name="buscarServiciosRequest"><part name="parameters" element="tns:buscarServiciosRequest"/></message>
   <message name="buscarServiciosResponse"><part name="parameters" element="tns:buscarServiciosResponse"/></message>
 
@@ -163,29 +183,79 @@
   <message name="cancelarReservaIntegracionRequest"><part name="parameters" element="tns:cancelarReservaIntegracionRequest"/></message>
   <message name="cancelarReservaIntegracionResponse"><part name="parameters" element="tns:cancelarReservaIntegracionResponse"/></message>
 
-  <!-- PortType -->
+  <!-- ===== PortType ===== -->
   <portType name="IntegracionPort">
-    <operation name="buscarServicios"><input message="tns:buscarServiciosRequest"/><output message="tns:buscarServiciosResponse"/></operation>
-    <operation name="obtenerDetalleServicio"><input message="tns:obtenerDetalleServicioRequest"/><output message="tns:obtenerDetalleServicioResponse"/></operation>
-    <operation name="verificarDisponibilidad"><input message="tns:verificarDisponibilidadRequest"/><output message="tns:verificarDisponibilidadResponse"/></operation>
-    <operation name="cotizarReserva"><input message="tns:cotizarReservaRequest"/><output message="tns:cotizarReservaResponse"/></operation>
-    <operation name="crearPreReserva"><input message="tns:crearPreReservaRequest"/><output message="tns:crearPreReservaResponse"/></operation>
-    <operation name="confirmarReserva"><input message="tns:confirmarReservaRequest"/><output message="tns:confirmarReservaResponse"/></operation>
-    <operation name="cancelarReservaIntegracion"><input message="tns:cancelarReservaIntegracionRequest"/><output message="tns:cancelarReservaIntegracionResponse"/></operation>
+    <operation name="buscarServicios">
+      <input  message="tns:buscarServiciosRequest"/>
+      <output message="tns:buscarServiciosResponse"/>
+    </operation>
+    <operation name="obtenerDetalleServicio">
+      <input  message="tns:obtenerDetalleServicioRequest"/>
+      <output message="tns:obtenerDetalleServicioResponse"/>
+    </operation>
+    <operation name="verificarDisponibilidad">
+      <input  message="tns:verificarDisponibilidadRequest"/>
+      <output message="tns:verificarDisponibilidadResponse"/>
+    </operation>
+    <operation name="cotizarReserva">
+      <input  message="tns:cotizarReservaRequest"/>
+      <output message="tns:cotizarReservaResponse"/>
+    </operation>
+    <operation name="crearPreReserva">
+      <input  message="tns:crearPreReservaRequest"/>
+      <output message="tns:crearPreReservaResponse"/>
+    </operation>
+    <operation name="confirmarReserva">
+      <input  message="tns:confirmarReservaRequest"/>
+      <output message="tns:confirmarReservaResponse"/>
+    </operation>
+    <operation name="cancelarReservaIntegracion">
+      <input  message="tns:cancelarReservaIntegracionRequest"/>
+      <output message="tns:cancelarReservaIntegracionResponse"/>
+    </operation>
   </portType>
 
-  <!-- Binding -->
+  <!-- ===== Binding ===== -->
   <binding name="IntegracionBinding" type="tns:IntegracionPort">
-    <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
-    <operation name="buscarServicios"><soap:operation soapAction="buscarServicios"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
-    <operation name="obtenerDetalleServicio"><soap:operation soapAction="obtenerDetalleServicio"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
-    <operation name="verificarDisponibilidad"><soap:operation soapAction="verificarDisponibilidad"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
-    <operation name="cotizarReserva"><soap:operation soapAction="cotizarReserva"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
-    <operation name="crearPreReserva"><soap:operation soapAction="crearPreReserva"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
-    <operation name="confirmarReserva"><soap:operation soapAction="confirmarReserva"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
-    <operation name="cancelarReservaIntegracion"><soap:operation soapAction="cancelarReservaIntegracion"/><input><soap:body use="literal"/></input><output><soap:body use="literal"/></output></operation>
+    <soap:binding transport="http://schemas.xmlsoap.org/soap/http" style="document"/>
+    <operation name="buscarServicios">
+      <soap:operation soapAction="urn:cuenca.integracion/buscarServicios"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+    <operation name="obtenerDetalleServicio">
+      <soap:operation soapAction="urn:cuenca.integracion/obtenerDetalleServicio"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+    <operation name="verificarDisponibilidad">
+      <soap:operation soapAction="urn:cuenca.integracion/verificarDisponibilidad"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+    <operation name="cotizarReserva">
+      <soap:operation soapAction="urn:cuenca.integracion/cotizarReserva"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+    <operation name="crearPreReserva">
+      <soap:operation soapAction="urn:cuenca.integracion/crearPreReserva"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+    <operation name="confirmarReserva">
+      <soap:operation soapAction="urn:cuenca.integracion/confirmarReserva"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
+    <operation name="cancelarReservaIntegracion">
+      <soap:operation soapAction="urn:cuenca.integracion/cancelarReservaIntegracion"/>
+      <input><soap:body use="literal"/></input>
+      <output><soap:body use="literal"/></output>
+    </operation>
   </binding>
 
+  <!-- ===== Service ===== -->
   <service name="IntegracionService">
     <port name="IntegracionPort" binding="tns:IntegracionBinding">
       <soap:address location="REPLACE_ME_AT_RUNTIME"/>
