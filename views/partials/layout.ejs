@@ -46,16 +46,18 @@
         <span class="name">Cuenca Travel</span>
       </a>
 
-      <nav class="nav">
-        <a href="/">Inicio</a>
-        <% if (!user) { %>
-          <a href="/login">Ingresar</a>
-          <a href="/register">Registrarse</a>
-        <% } else { %>
-          <span>Hola, <%= user.nombre || user.email %></span>
-          <a href="/logout">Salir</a>
-        <% } %>
-      </nav>
+ <nav class="topnav">
+  <a href="/">Inicio</a>
+  <% if (user) { %>
+    <a href="/mis-reservas">Mis reservas</a>
+    <span class="muted">Hola, <%= user.nombre || user.email %></span>
+    <a href="/logout">Salir</a>
+  <% } else { %>
+    <a href="/login">Ingresar</a>
+    <a href="/register">Registrarse</a>
+  <% } %>
+</nav>
+
     </header>
 
     <main class="container">

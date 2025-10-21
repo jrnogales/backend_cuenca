@@ -11,6 +11,8 @@ import authRoutes from './routes/auth.js';
 import checkoutRoutes from './routes/checkout.js';
 import { attachUser } from './middleware/auth.js';
 import { attachSoap } from './soap/server.js';
+import reservasRoutes from './routes/reservas.js';
+
 
 import ejs from 'ejs';
 
@@ -66,6 +68,9 @@ app.use((req, res, next) => {
       }
     }
   }
+
+  app.use('/', reservasRoutes);
+
 
   res.locals.user = user;
   // `title` puede venir desde controladores; aquí dejamos un valor neutro

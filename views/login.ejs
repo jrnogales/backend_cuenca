@@ -1,8 +1,21 @@
 <% layout('partials/layout') %>
-<h2>Iniciar sesión</h2>
-<form method="post" action="/login" class="card" style="max-width:540px">
-  <label>Email</label><input type="email" name="email" required>
-  <label>Contraseña</label><input type="password" name="password" required>
-  <button class="btn" type="submit">Entrar</button>
-  <% if(typeof error!=='undefined'){ %><p style="color:#b00"><%= error %></p><% } %>
-</form>
+
+<div class="card" style="max-width:480px">
+  <h2>Ingresar</h2>
+
+  <% if (query?.msg) { %>
+    <div class="notice error"><%= query.msg %></div>
+  <% } %>
+
+  <form method="POST" action="/login">
+    <input type="hidden" name="next" value="<%= query?.next || '/' %>">
+
+    <label>Correo</label>
+    <input type="email" name="email" required>
+
+    <label>Contraseña</label>
+    <input type="password" name="password" required>
+
+    <button class="btn-primary">Entrar</button>
+  </form>
+</div>

@@ -1,0 +1,37 @@
+<% layout('partials/layout') %>
+
+<h2>Mis reservas</h2>
+
+<% if (!reservas || reservas.length === 0) { %>
+  <div class="notice">Aún no tienes reservas.</div>
+<% } else { %>
+  <div class="cards">
+    <% reservas.forEach(r => { 
+         const hoy = new Date();
+         const inicio = new Date(r.fecha_viaje);
+         const diffMs = inicio.getTime() - hoy.getTime();
+         const cancelable = diffMs >= (8*60*60*1000);
+    %>
+      <article class="card" style="display:grid;grid-template-columns:160px 1fr;gap:16px">
+        <div class="pic">
+          <img src="<%= r.imagen || '' %>" alt="<%= r.titulo %>" loading="lazy" width="160">
+        </div>
+        <div>
+          <h3><%= r.titulo %></h3>
+          <p><b>Código:</b> <%= r.codigo_reserva %></p>
+          <p><b>Fecha del viaje:</b> <%= r.fecha_viaje %></p>
+          <p><b>Pasajeros:</b> <%= r.adultos %> adultos · <%= r.ninos %> niños</p>
+          <p><b>Total:</b> $<%= Number(r.total_usd||0).toFixed(2) %></p>
+
+          <% if (cancelable) { %>
+            <form method="POST" action="/reservas/<%= r.codigo_reserva %>/cancelar" onsubmit="return confirm('¿Cancelar esta reserva?');">
+              <button class="btn-danger">Cancelar</button>
+            </form>
+          <% } else { %>
+            <div class="notice">Esta reserva ya no se puede cancelar (menos de 8 horas).</div>
+          <% } %>
+        </div>
+      </article>
+    <% }) %>
+  </div>
+<% } %>

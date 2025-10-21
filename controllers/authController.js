@@ -10,3 +10,18 @@ export async function login(req,res){ const { email,password } = req.body; const
   if(!ok) return res.render('login',{error:'Usuario/contraseña inválidos.'}); const token = jwt.sign({id:u.id,nombre:u.nombre,email:u.email}, process.env.JWT_SECRET, {expiresIn:'2d'});
   res.cookie('token', token, { httpOnly:true, sameSite:'lax' }); res.redirect('/'); }
 export function logout(req,res){ res.clearCookie('token'); res.redirect('/login'); }
+
+// GET /login
+export function showLogin(req, res) {
+  res.render('login', {
+    title: 'Ingresar',
+    query: { msg: req.query.msg || '', next: req.query.next || '/' }
+  });
+}
+
+// POST /login
+export async function doLogin(req, res) {
+  // ... valida usuario/contraseña, genera token/cookie como ya lo haces
+  const nextUrl = req.body.next || '/';
+  return res.redirect(nextUrl);
+}

@@ -18,12 +18,12 @@ router.get('/:codigo', showCheckout);
  * 🧾 Crear una nueva reserva
  * Ejemplo: POST /checkout
  */
-router.post('/', crearReserva);
+router.post('/', requireAuth, crearReserva);
 
 /**
  * ❌ Cancelar una reserva existente
  * Ejemplo: POST /checkout/cancelar/RES-20251019-ABCD
  */
-router.post('/cancelar/:codigo', cancelarReserva);
+router.post('/cancelar/:codigo', requireAuth, cancelarReserva);
 
 export default router;
