@@ -48,7 +48,8 @@
       data-pn="<%= pn %>">
 
       <div class="pic">
-        <img src="<%= p.imagen ? ('/img/'+p.imagen) : '/img/noimg.jpg' %>" alt="<%= p.titulo %>" loading="lazy">
+        <!-- SOLO URL desde la BD -->
+        <img src="<%= p.imagen || '' %>" alt="<%= p.titulo %>" loading="lazy">
       </div>
 
       <div class="card-body">
@@ -126,7 +127,7 @@
     }
 
     document.querySelectorAll('.card').forEach(card=>{
-      // sync con la toolbar
+      // sync inicial con la toolbar
       card.querySelector('.in-adultos').value = parseInt($adultSel.value, 10);
       card.querySelector('.in-ninos').value   = parseInt($ninoSel.value, 10);
       calcCard(card);
