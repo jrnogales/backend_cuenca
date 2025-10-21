@@ -5,16 +5,17 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import jwt from 'jsonwebtoken';
+import ejs from 'ejs';
 
+// Rutas
 import paquetesRoutes from './routes/paquetes.js';
 import authRoutes from './routes/auth.js';
 import checkoutRoutes from './routes/checkout.js';
-import { attachUser } from './middleware/auth.js';
-import { attachSoap } from './soap/server.js';
 import reservasRoutes from './routes/reservas.js';
 
-
-import ejs from 'ejs';
+// Middlewares/servicios
+import { attachUser } from './middleware/auth.js';
+import { attachSoap } from './soap/server.js';
 
 dotenv.config();
 
@@ -22,19 +23,20 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Parsers
+/* ---------- Parsers ---------- */
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// Archivos estáticos
+/* ---------- Archivos estáticos ---------- */
 app.use('/img', express.static(path.join(__dirname, 'public/img')));
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
 
-// Motor de vistas (EJS) + layout simple
+/* ---------- Motor de vistas (EJS) con layout ---------- */
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 app.engine('ejs', (file, data, cb) => {
+  // mini layout helper: <% layout('partials/layout') %>
   data.layout = function (p) { data._layoutFile = p + '.ejs'; };
   ejs.renderFile(file, data, {}, (err, str) => {
     if (err) return cb(err);
@@ -49,15 +51,15 @@ app.engine('ejs', (file, data, cb) => {
   });
 });
 
-// 1) Adjunta usuario a req (middleware propio, si lo usas)
+/* ---------- Contexto de usuario en req y vistas ---------- */
+// Adjunta usuario si hay cookie válida
 app.use(attachUser);
 
-// 2) Expone siempre `user` y `title` a todas las vistas (evita "is not defined")
+// Expone siempre `user` y `title` en las vistas
 app.use((req, res, next) => {
-  // Preferimos el user que pueda haber puesto attachUser
   let user = req.user || null;
 
-  // Si no lo hay, intentamos decodificar cookie `token`
+  // Si no lo puso attachUser, intentamos leer token por si acaso
   if (!user) {
     const token = req.cookies?.token;
     if (token) {
@@ -69,25 +71,22 @@ app.use((req, res, next) => {
     }
   }
 
-  app.use('/', reservasRoutes);
-
-
   res.locals.user = user;
-  // `title` puede venir desde controladores; aquí dejamos un valor neutro
   if (typeof res.locals.title === 'undefined') res.locals.title = undefined;
   next();
 });
 
-// Rutas
+/* ---------- Rutas de aplicación ---------- */
 app.use('/', paquetesRoutes);
 app.use('/', authRoutes);
 app.use('/checkout', checkoutRoutes);
+app.use('/', reservasRoutes); // /mis-reservas, /reservas/:codigo/cancelar, etc.
 
-// SOAP (para el BUS)
+/* ---------- SOAP (para el BUS) ---------- */
 attachSoap(app);
 
-// Arranque
+/* ---------- Arranque ---------- */
 const port = process.env.PORT || 3000;
-app.listen(port, () =>
-  console.log(`http://localhost:${port}  · WSDL: /soap/paquetes.wsdl`)
-);
+app.listen(port, () => {
+  console.log(`http://localhost:${port}  · WSDL: /soap/paquetes.wsdl`);
+});

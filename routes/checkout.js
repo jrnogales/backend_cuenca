@@ -1,29 +1,22 @@
-// routes/checkoutRoutes.js
+// routes/checkout.js
 import express from 'express';
 import {
   showCheckout,
   crearReserva,
-  cancelarReserva
+  cancelarReserva,   // ← importa esto también
 } from '../controllers/checkoutController.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = express.Router();
 
-/**
- * 🧭 Mostrar el checkout (detalle) de un paquete
- * Ejemplo: GET /checkout/CODIGO123
- */
+// Detalle/checkout del paquete
 router.get('/:codigo', showCheckout);
 
-/**
- * 🧾 Crear una nueva reserva
- * Ejemplo: POST /checkout
- */
+// Crear una nueva reserva (requiere login)
 router.post('/', requireAuth, crearReserva);
 
-/**
- * ❌ Cancelar una reserva existente
- * Ejemplo: POST /checkout/cancelar/RES-20251019-ABCD
- */
+// Cancelar una reserva por código (si decides permitirlo aquí)
 router.post('/cancelar/:codigo', requireAuth, cancelarReserva);
 
 export default router;
+
