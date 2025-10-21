@@ -1,7 +1,65 @@
-<!doctype html><html lang="es"><head><meta charset="utf-8"/><title><%= typeof title !== 'undefined' ? title : 'Mi sitio' %></title>
-<link rel="stylesheet" href="/css/site.css"/><style>body,h1,h2,h3,p,button,input,select{font-family:'Segoe UI',Arial,sans-serif} h1{font-size:22px} h2{font-size:18px} p{font-size:14px} small{font-size:11px}
-.wrap{max-width:1000px;margin:0 auto;padding:24px} .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
-.card{border:1px solid #eee;border-radius:14px;padding:16px;box-shadow:0 2px 6px rgba(0,0,0,.04)} .btn{background:#1464e4;color:#fff;border:0;border-radius:10px;padding:10px 14px;cursor:pointer;text-decoration:none;display:inline-block}
-header a{color:#1464e4;text-decoration:none;margin-right:12px}</style></head><body>
-<header class="wrap"><h1>Paquetes Turísticos – Cuenca</h1><nav><a href="/">Inicio</a> <% if (user) { %><span>Hola, <%= user.nombre %></span> · <a href="/logout">Salir</a><% } else { %><a href="/login">Ingresar</a> · <a href="/register">Registrarse</a><% } %></nav><hr/></header>
-<main class="wrap"><%- body %></main></body></html>
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title><%= title || 'Cuenca Travel' %></title>
+
+    <!-- Favicon y logo quemados -->
+    <link rel="icon" type="image/png"
+          href="https://jrnogales.neocities.org/imagenes/cuencatravel-ok.png">
+
+    <!-- Tu CSS -->
+    <link rel="stylesheet" href="/css/site.css">
+    <style>
+      /* Estilos mínimos para el header con logo */
+      .topbar{
+        position: sticky; top:0; z-index: 10;
+        display:flex; align-items:center; justify-content:space-between;
+        gap:16px; padding:12px 20px; background:#fff;
+        border-bottom:1px solid #ececec;
+      }
+      .brand{display:flex; align-items:center; gap:12px; text-decoration:none;}
+      .brand .logo{
+        height:40px; width:auto; object-fit:contain; display:block;
+      }
+      .brand .name{
+        font-weight:700; font-size:1.1rem; color:#111;
+        letter-spacing:.2px;
+      }
+      .nav a{
+        margin-left:14px; color:#333; text-decoration:none;
+      }
+      .container{max-width:1100px; margin:0 auto; padding:18px;}
+      @media (max-width:640px){
+        .brand .name{display:none;}
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="/">
+        <!-- LOGO QUEMADO -->
+        <img class="logo"
+             src="https://jrnogales.neocities.org/imagenes/cuencatravel-ok.png"
+             alt="Cuenca Travel">
+        <span class="name">Cuenca Travel</span>
+      </a>
+
+      <nav class="nav">
+        <a href="/">Inicio</a>
+        <% if (!user) { %>
+          <a href="/login">Ingresar</a>
+          <a href="/register">Registrarse</a>
+        <% } else { %>
+          <span>Hola, <%= user.nombre || user.email %></span>
+          <a href="/logout">Salir</a>
+        <% } %>
+      </nav>
+    </header>
+
+    <main class="container">
+      <%- body %>
+    </main>
+  </body>
+</html>
