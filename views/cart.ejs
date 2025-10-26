@@ -1,0 +1,36 @@
+<% layout('partials/layout') %>
+
+<h2>Mi carrito</h2>
+
+<% if (!items || items.length === 0) { %>
+  <div class="notice">Tu carrito está vacío.</div>
+<% } else { %>
+  <div class="card">
+    <% items.forEach(it => { %>
+      <div class="row" style="display:grid;grid-template-columns:120px 1fr auto;gap:12px;align-items:center;margin:12px 0">
+        <img src="<%= it.imagen || '' %>" alt="<%= it.titulo %>" style="width:120px;height:80px;object-fit:cover;border-radius:8px">
+        <div>
+          <div><strong><%= it.titulo %></strong></div>
+          <div class="muted">Fecha: <%= it.fecha.toISOString().slice(0,10) %></div>
+          <div class="muted">Adultos: <%= it.adultos %> · Niños: <%= it.ninos %></div>
+        </div>
+        <div style="text-align:right">
+          <div>$ <%= Number(it.total_linea).toFixed(2) %></div>
+          <form method="post" action="/cart/remove/<%= it.id %>">
+            <button class="btn" style="margin-top:6px">Quitar</button>
+          </form>
+        </div>
+      </div>
+      <hr>
+    <% }) %>
+    <div style="text-align:right">
+      <div>Subtotal: <strong>$ <%= totals.subtotal.toFixed(2) %></strong></div>
+      <div>IVA (15%): <strong>$ <%= totals.iva.toFixed(2) %></strong></div>
+      <div style="font-size:18px">Total: <strong>$ <%= totals.total.toFixed(2) %></strong></div>
+
+      <form method="post" action="/cart/checkout" style="margin-top:12px">
+        <button class="btn-primary">Pagar ahora</button>
+      </form>
+    </div>
+  </div>
+<% } %>

@@ -17,6 +17,8 @@ import reservasRoutes from './routes/reservas.js';
 import { attachUser } from './middleware/auth.js';
 import { attachSoap } from './soap/server.js';
 
+import cartRoutes from './routes/cart.js';
+
 dotenv.config();
 
 const app = express();
@@ -81,6 +83,7 @@ app.use('/', paquetesRoutes);
 app.use('/', authRoutes);
 app.use('/checkout', checkoutRoutes);
 app.use('/', reservasRoutes); // /mis-reservas, /reservas/:codigo/cancelar, etc.
+app.use('/', cartRoutes); 
 
 /* ---------- SOAP (para el BUS) ---------- */
 attachSoap(app);
@@ -89,4 +92,6 @@ attachSoap(app);
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`http://localhost:${port}  · WSDL: /soap/paquetes.wsdl`);
+
+  
 });

@@ -75,13 +75,12 @@
             <div class="note">El precio varía en función del número de personas por grupo</div>
           </div>
 
-          <form class="buy" method="POST" action="/checkout">
-            <!-- CORREGIDO: el backend espera "codigo" -->
+          <!-- ⬇️ AHORA: Añadir al carrito -->
+          <form class="add-cart" method="POST" action="/cart/add">
             <input type="hidden" name="codigo"   class="h-id"    value="<%= p.codigo %>">
             <input type="hidden" name="fecha"    class="h-fecha">
             <input type="hidden" name="adultos"  class="h-adultos">
             <input type="hidden" name="ninos"    class="h-ninos">
-            <input type="hidden" name="total"    class="h-total">
 
             <div class="qty">
               <label>Adultos</label>
@@ -93,7 +92,7 @@
             </div>
 
             <div class="total">Total: <strong class="total-val">$0.00</strong></div>
-            <button class="btn-primary">Comprar</button>
+            <button class="btn-primary">Añadir al carrito</button>
           </form>
         </div>
       </div>
@@ -137,7 +136,6 @@
       card.querySelector('.h-adultos').value = A;
       card.querySelector('.h-ninos').value   = N;
       card.querySelector('.h-fecha').value   = $fecha.value || '';
-      card.querySelector('.h-total').value   = total.toFixed(2);
     }
 
     // Inicializa todas las tarjetas
@@ -149,20 +147,49 @@
       card.querySelector('.in-adultos').addEventListener('input', () => calcCard(card));
       card.querySelector('.in-ninos').addEventListener('input', () => calcCard(card));
 
-      // Validación al enviar cada formulario de compra
-      card.querySelector('form.buy').addEventListener('submit', (e) => {
+      // ⬇️ Interceptamos el submit para /cart/add con fetch
+      card.querySelector('form.add-cart').addEventListener('submit', async (e) => {
+        e.preventDefault();
+
         if (!$fecha.value) {
-          e.preventDefault();
           alert('Selecciona una fecha.');
           return;
         }
         if ($fecha.value < $fecha.min) {
-          e.preventDefault();
           $fecha.value = $fecha.min;
           alert('No puedes seleccionar una fecha pasada.');
           return;
         }
-        calcCard(card); // asegura campos ocultos actualizados
+
+        // asegura hidden actualizados
+        calcCard(card);
+
+        const form = e.currentTarget;
+        const fd = new FormData(form);
+
+        try {
+          const resp = await fetch(form.action, {
+            method: 'POST',
+            body: new URLSearchParams(fd),
+            headers: { 'Accept': 'application/json' }
+          });
+
+          if (!resp.ok) {
+            const txt = await resp.text();
+            alert('No se pudo añadir al carrito: ' + txt);
+            return;
+          }
+
+          const data = await resp.json();
+          if (data.ok) {
+            const go = confirm('Añadido al carrito ✅\n¿Deseas ir al carrito ahora?');
+            if (go) location.href = '/cart';
+          } else {
+            alert('No se pudo añadir al carrito.');
+          }
+        } catch (err) {
+          alert('Error de red: ' + err.message);
+        }
       });
     });
 
