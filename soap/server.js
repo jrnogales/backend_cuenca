@@ -80,6 +80,7 @@ async function obtenerDetalleHandler(args, cb) {
 }
 
 async function crearReservaHandler(args, cb) {
+  const client = await pool.connect();
   try {
     const a = Math.max(1, parseInt(args.adultos || '1', 10));
     const k = Math.max(0, parseInt(args.ninos   || '0', 10));
@@ -89,34 +90,68 @@ async function crearReservaHandler(args, cb) {
       return cb({ ok: false, codigoReserva: '', mensaje: 'Datos incompletos' });
     }
 
-    const pRes = await pool.query('SELECT * FROM paquetes WHERE codigo=$1 LIMIT 1', [codigo]);
+    const pRes = await client.query('SELECT * FROM paquetes WHERE codigo=$1 LIMIT 1', [codigo]);
     const p = pRes.rows[0];
     if (!p) return cb({ ok: false, codigoReserva: '', mensaje: 'Paquete no encontrado' });
 
     const solicitados = a + k;
-    if (Number(p.stock || 0) < solicitados) {
-      return cb({ ok: false, codigoReserva: '', mensaje: `Stock insuficiente (${p.stock})` });
+
+    await client.query('BEGIN');
+
+    await client.query(
+      `INSERT INTO disponibilidad (paquete_id, fecha, cupos_totales, cupos_reservados)
+       VALUES ($1,$2,30,0)
+       ON CONFLICT (paquete_id, fecha) DO NOTHING`,
+      [p.id, fecha]
+    );
+
+    const { rows: drows } = await client.query(
+      `SELECT cupos_totales, cupos_reservados
+         FROM disponibilidad
+        WHERE paquete_id=$1 AND fecha=$2
+        FOR UPDATE`,
+      [p.id, fecha]
+    );
+    if (drows.length === 0) {
+      await client.query('ROLLBACK');
+      return cb({ ok:false, codigoReserva:'', mensaje:'No hay disponibilidad para esa fecha.' });
+    }
+
+    const disponibles = drows[0].cupos_totales - drows[0].cupos_reservados;
+    if (disponibles < solicitados) {
+      await client.query('ROLLBACK');
+      return cb({ ok:false, codigoReserva:'', mensaje:`Stock insuficiente (${disponibles})` });
     }
 
     const total = a * Number(p.precio_adulto || 0) + k * Number(p.precio_nino || 0);
-
     const code =
       'RES-' + new Date().toISOString().slice(0,10).replace(/-/g,'') +
       '-'    + Math.random().toString(36).slice(2,6).toUpperCase();
 
-    await pool.query(
+    await client.query(
       `INSERT INTO reservas
          (codigo_reserva, paquete_id, usuario_id, fecha_viaje, adultos, ninos, total_usd, origen)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'SOAP')`,
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'SOAP')`,
       [code, p.id, null, fecha, a, k, total]
     );
-    await pool.query('UPDATE paquetes SET stock = stock - $1 WHERE id = $2', [solicitados, p.id]);
 
+    await client.query(
+      `UPDATE disponibilidad
+          SET cupos_reservados = cupos_reservados + $1
+        WHERE paquete_id=$2 AND fecha=$3`,
+      [solicitados, p.id, fecha]
+    );
+
+    await client.query('COMMIT');
     cb({ ok: true, codigoReserva: code, mensaje: '' });
   } catch (e) {
+    try { await client.query('ROLLBACK'); } catch {}
     cb({ ok: false, codigoReserva: '', mensaje: e.message });
+  } finally {
+    client.release();
   }
 }
+
 
 /* ==================================================
    ============ Handlers SOAP “integración” =========
@@ -153,14 +188,35 @@ async function obtenerDetalleServicio({ idServicio }, cb) {
 
 async function verificarDisponibilidad({ sku, inicio, fin, unidades }, cb) {
   try {
-    const p = await getPaqueteByCodigo(sku);
-    if (!p) return cb({ ok: false });
+    const date = String(inicio || '').slice(0, 10); // usamos inicio como fecha
+    const pRes = await pool.query('SELECT id FROM paquetes WHERE codigo=$1 LIMIT 1', [sku]);
+    const p = pRes.rows[0];
+    if (!p || !date) return cb({ ok: false });
+
+    // asegura fila de disponibilidad
+    await pool.query(
+      `INSERT INTO disponibilidad (paquete_id, fecha, cupos_totales, cupos_reservados)
+       VALUES ($1,$2,30,0)
+       ON CONFLICT (paquete_id, fecha) DO NOTHING`,
+      [p.id, date]
+    );
+
+    const { rows } = await pool.query(
+      `SELECT cupos_totales, cupos_reservados
+         FROM disponibilidad
+        WHERE paquete_id=$1 AND fecha=$2`,
+      [p.id, date]
+    );
+    if (rows.length === 0) return cb({ ok: false });
+
+    const disp = rows[0].cupos_totales - rows[0].cupos_reservados;
     const u = Math.max(0, parseInt(unidades || '0', 10));
-    cb({ ok: Number(p.stock || 0) >= u });
+    cb({ ok: disp >= u });
   } catch {
     cb({ ok: false });
   }
 }
+
 
 async function cotizarReserva(args, cb) {
   try {
@@ -246,6 +302,7 @@ async function cancelarReservaIntegracion({ bookingId, motivo }, cb) {
     cb({ ok: false });
   }
 }
+
 
 /* ==================================================
    ============== Objetos “service” WSDL =============
