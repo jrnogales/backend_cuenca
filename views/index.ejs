@@ -132,16 +132,33 @@
 
       const total = (A * pa) + (N * pn);
       if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
+    }
 
-      // sync hidden inputs para tu POST /checkout (por si lo usas)
-      const hA = card.querySelector('.h-adultos');
-      const hN = card.querySelector('.h-ninos');
-      const hF = card.querySelector('.h-fecha');
-      const hT = card.querySelector('.h-total');
-      if (hA) hA.value = A;
-      if (hN) hN.value = N;
-      if (hF) hF.value = $fecha?.value || '';
-      if (hT) hT.value = total.toFixed(2);
+    // ===== llamada API carrito =====
+    async function apiAddToCart(payload){
+      const res = await fetch('/cart/add', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify(payload)
+      });
+      // No autenticado
+      if (res.status === 401) {
+        const next = encodeURIComponent(location.pathname);
+        location.href = '/login?msg=Debes iniciar sesión&next=' + next;
+        return null;
+      }
+      // Conflicto de cupos
+      if (res.status === 409) {
+        const data = await res.json().catch(()=>({}));
+        alert(data.message || 'No hay cupos suficientes.');
+        return null;
+      }
+      if (!res.ok) {
+        const t = await res.text();
+        alert(t || 'No se pudo añadir al carrito.');
+        return null;
+      }
+      return res.json();
     }
 
     // ===== inicialización de todas las tarjetas =====
@@ -157,51 +174,41 @@
       inA?.addEventListener('input', ()=>calcCard(card));
       inN?.addEventListener('input', ()=>calcCard(card));
 
-      // seguridad si alguien envía el form (aunque ahora usamos carrito)
-      const form = card.querySelector('form.buy');
-      form?.addEventListener('submit', (e)=>{
-        if (!$fecha?.value) { e.preventDefault(); alert('Selecciona una fecha.'); return; }
-        if ($fecha.value < $fecha.min) { e.preventDefault(); $fecha.value = $fecha.min; alert('No puedes seleccionar una fecha pasada.'); return; }
-        calcCard(card);
-      });
+      // ===== Añadir al carrito (servidor) =====
+      const btnAdd = card.querySelector('.add-cart');
+      btnAdd?.addEventListener('click', async ()=>{
+        if (!$fecha?.value) { alert('Selecciona una fecha antes de añadir.'); return; }
+        if ($fecha.value < $fecha.min) { $fecha.value = $fecha.min; }
 
-      // ===== Añadir al carrito =====
-      const btnAdd = card.querySelector('.btn-add-cart, .btn-primary.btn-add-cart') || card.querySelector('button.btn-primary'); // por si variaron clases
-      if (btnAdd && btnAdd.textContent.toLowerCase().includes('añadir')) {
-        btnAdd.addEventListener('click', ()=>{
-          if (!$fecha?.value) { alert('Selecciona una fecha antes de añadir.'); return; }
-          if ($fecha.value < $fecha.min) { $fecha.value = $fecha.min; }
+        const payload = {
+          codigo: card.dataset.id,
+          fecha:  $fecha.value,
+          adultos: Math.max(1, parseInt(card.querySelector('.in-adultos')?.value ?? '1', 10)),
+          ninos:   Math.max(0, parseInt(card.querySelector('.in-ninos')?.value ?? '0', 10))
+        };
 
-          const item = {
-            codigo: card.dataset.id,
-            titulo: (card.querySelector('.title')?.textContent || card.dataset.id).trim(),
-            fecha:  $fecha.value,
-            adultos: Math.max(1, parseInt(card.querySelector('.in-adultos')?.value ?? '1', 10)),
-            ninos:   Math.max(0, parseInt(card.querySelector('.in-ninos')?.value ?? '0', 10)),
-            pa: Number(card.dataset.pa || 0),
-            pn: Number(card.dataset.pn || 0),
-            img: card.querySelector('.pic img')?.src || ''
-          };
+        btnAdd.disabled = true;
+        const prevText = btnAdd.textContent;
+        btnAdd.textContent = 'Añadiendo…';
 
-          // fallback en caso de que el script global no esté cargado aún
-          if (typeof addToCart === 'function') {
-            addToCart(item);
-          } else {
-            const KEY='cart_v1';
-            let list=[]; try{ list=JSON.parse(localStorage.getItem(KEY)||'[]'); }catch{}
-            list.push(item);
-            localStorage.setItem(KEY, JSON.stringify(list));
-            // si luego carga el global, que refresque el badge
-            if (typeof updateCartUI === 'function') updateCartUI();
-          }
+        const data = await apiAddToCart(payload);
 
+        btnAdd.textContent = prevText;
+        btnAdd.disabled = false;
+
+        if (data && data.ok) {
+          // actualiza badge / mini-carrito si existen
+          if (typeof window.updateCartUI === 'function') window.updateCartUI(data);
+          if (typeof window.renderMiniCart === 'function') window.renderMiniCart(data);
           // feedback sutil
-          const prev = btnAdd.textContent;
-          btnAdd.disabled = true;
           btnAdd.textContent = 'Añadido ✓';
-          setTimeout(()=>{ btnAdd.textContent = prev; btnAdd.disabled = false; }, 900);
-        });
-      }
+          btnAdd.disabled = true;
+          setTimeout(()=>{
+            btnAdd.textContent = prevText;
+            btnAdd.disabled = false;
+          }, 900);
+        }
+      });
     });
 
     // al cambiar fecha, recalc
