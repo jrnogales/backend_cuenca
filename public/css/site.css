@@ -105,6 +105,15 @@ html,body{
   padding:10px 12px; border-radius:12px; text-align:center;
 }
 
+.cart-remove{
+  border:none; background:#ef4444; color:#fff; 
+  width:32px; height:32px; border-radius:8px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; line-height:1;
+}
+.cart-remove:hover{ background:#dc2626; }
+
+
 /* ---------- Responsive columns ---------- */
 @media (min-width:640px){
   .card{ grid-column: span 6; }

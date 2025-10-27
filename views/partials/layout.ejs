@@ -5,63 +5,222 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title><%= title || 'Cuenca Travel' %></title>
 
-    <!-- Favicon y logo quemados -->
+    <!-- Favicon y logo (quemados) -->
     <link rel="icon" type="image/png"
           href="https://jrnogales.neocities.org/imagenes/cuencatravel-ok.png">
 
     <!-- Tu CSS -->
     <link rel="stylesheet" href="/css/site.css">
+
     <style>
-      /* Estilos mínimos para el header con logo */
+      /* ------- Topbar / layout básico ------- */
       .topbar{
-        position: sticky; top:0; z-index: 10;
+        position: sticky; top:0; z-index: 50;
         display:flex; align-items:center; justify-content:space-between;
         gap:16px; padding:12px 20px; background:#fff;
         border-bottom:1px solid #ececec;
       }
       .brand{display:flex; align-items:center; gap:12px; text-decoration:none;}
-      .brand .logo{
-        height:40px; width:auto; object-fit:contain; display:block;
-      }
-      .brand .name{
-        font-weight:700; font-size:1.1rem; color:#111;
-        letter-spacing:.2px;
-      }
-      .nav a{
-        margin-left:14px; color:#333; text-decoration:none;
-      }
+      .brand .logo{ height:40px; width:auto; object-fit:contain; display:block; }
+      .brand .name{ font-weight:700; font-size:1.1rem; color:#111; letter-spacing:.2px; }
+      .topnav a{ margin-left:14px; color:#333; text-decoration:none; }
       .container{max-width:1100px; margin:0 auto; padding:18px;}
-      @media (max-width:640px){
-        .brand .name{display:none;}
+      .muted{ color:#6b7280; }
+
+      @media (max-width:640px){ .brand .name{display:none;} }
+
+      /* ------- Carrito ------- */
+      .icon-btn{
+        background:#f3f4f6; border:1px solid #e5e7eb; padding:8px;
+        border-radius:10px; cursor:pointer; color:#111;
       }
+      .icon-btn:hover{ background:#e5e7eb; }
+
+      .card{
+        background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+        padding:12px; box-shadow:0 6px 18px rgba(0,0,0,.08);
+      }
+      .cart-item{ display:grid; grid-template-columns:56px 1fr auto; gap:8px; align-items:center; }
+      .cart-item img{ width:56px; height:56px; object-fit:cover; border-radius:8px; }
+
+      .cart-remove{
+        border:none; background:#ef4444; color:#fff;
+        width:32px; height:32px; border-radius:8px; cursor:pointer;
+        display:flex; align-items:center; justify-content:center;
+        font-size:18px; line-height:1;
+      }
+      .cart-remove:hover{ background:#dc2626; }
+
+      .btn-primary{
+        background:#2563eb; color:#fff; border:none; border-radius:10px;
+        padding:10px 14px; cursor:pointer;
+      }
+      .btn-primary:hover{ background:#1d4ed8; }
     </style>
   </head>
   <body>
     <header class="topbar">
       <a class="brand" href="/">
-        <!-- LOGO QUEMADO -->
         <img class="logo"
              src="https://jrnogales.neocities.org/imagenes/cuencatravel-ok.png"
              alt="Cuenca Travel">
         <span class="name">Cuenca Travel</span>
       </a>
 
- <nav class="topnav">
-  <a href="/">Inicio</a>
-  <% if (user) { %>
-    <a href="/mis-reservas">Mis reservas</a>
-    <span class="muted">Hola, <%= user.nombre || user.email %></span>
-    <a href="/logout">Salir</a>
-  <% } else { %>
-    <a href="/login">Ingresar</a>
-    <a href="/register">Registrarse</a>
-  <% } %>
-</nav>
+      <nav class="topnav" style="display:flex; align-items:center;">
+        <a href="/">Inicio</a>
+        <% if (user) { %>
+          <a href="/mis-reservas">Mis reservas</a>
+          <span class="muted">Hola, <%= user.nombre || user.email %></span>
+          <a href="/logout">Salir</a>
+        <% } else { %>
+          <a href="/login">Ingresar</a>
+          <a href="/register">Registrarse</a>
+        <% } %>
 
+        <!-- Carrito -->
+        <div class="cart-wrap" style="position:relative; margin-left:16px;">
+          <button id="cart-btn" class="icon-btn" aria-label="Ver carrito" title="Carrito" style="position:relative;">
+            <!-- Icono carrito (SVG) -->
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M3 3h2l.4 2M7 13h9l3-7H6.4"
+                    stroke="currentColor" stroke-width="2" fill="none"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="9" cy="20" r="1.5" fill="currentColor"/>
+              <circle cx="17" cy="20" r="1.5" fill="currentColor"/>
+            </svg>
+            <span id="cart-badge"
+                  style="position:absolute; top:-6px; right:-6px; background:#ef4444; color:#fff;
+                         font-size:12px; min-width:18px; height:18px; line-height:18px; text-align:center;
+                         border-radius:999px; padding:0 4px; display:none;">0</span>
+          </button>
+
+          <!-- Panel del carrito -->
+          <div id="cart-panel" class="card" style="position:absolute; right:0; top:44px; width:320px; display:none; z-index:60;">
+            <div style="font-weight:600; font-size:16px; margin-bottom:8px;">Tu carrito</div>
+            <div id="cart-items" style="display:grid; gap:8px;"></div>
+            <div id="cart-totals" style="margin-top:12px;">
+              <div>Subtotal: <b>$<span id="cart-sub">0.00</span></b></div>
+              <div>IVA (15%): <b>$<span id="cart-iva">0.00</span></b></div>
+              <div style="font-size:18px;">Total: <b>$<span id="cart-total">0.00</span></b></div>
+            </div>
+            <button id="cart-pay" class="btn-primary" style="margin-top:12px; width:100%;">Ir a pagar</button>
+          </div>
+        </div>
+      </nav>
     </header>
 
     <main class="container">
       <%- body %>
     </main>
+
+    <!-- ===== Script global del carrito (localStorage + UI + checkout) ===== -->
+    <script>
+      // Clave de almacenamiento
+      const CART_KEY = 'cart_v1';
+
+      function getCart(){
+        try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); }
+        catch { return []; }
+      }
+      function setCart(list){
+        localStorage.setItem(CART_KEY, JSON.stringify(list));
+        updateCartUI();
+      }
+      function addToCart(item){
+        const list = getCart(); list.push(item); setCart(list);
+      }
+      function removeFromCart(idx){
+        const list = getCart(); list.splice(idx,1); setCart(list);
+      }
+      function clearCart(){ setCart([]); }
+
+      function updateCartUI(){
+        const list = getCart();
+        const badge = document.getElementById('cart-badge');
+        const items = document.getElementById('cart-items');
+        const sSub = document.getElementById('cart-sub');
+        const sIva = document.getElementById('cart-iva');
+        const sTot = document.getElementById('cart-total');
+        if(!badge || !items) return;
+
+        // Badge
+        if(list.length>0){ badge.textContent = list.length; badge.style.display='inline-block'; }
+        else { badge.style.display='none'; }
+
+        // Items
+        items.innerHTML = '';
+        let subtotal = 0;
+        list.forEach((it, idx)=>{
+          const line = (Number(it.adultos||0)*Number(it.pa||0)) + (Number(it.ninos||0)*Number(it.pn||0));
+          subtotal += line;
+          const el = document.createElement('div');
+          el.className = 'cart-item';
+          el.innerHTML = `
+            <img src="${it.img||''}" alt="">
+            <div>
+              <div style="font-weight:600">${(it.titulo||it.codigo||'Paquete')}</div>
+              <div style="font-size:12px; color:#6b7280">${it.fecha} · A:${it.adultos} · N:${it.ninos}</div>
+              <div style="font-size:12px;">$${line.toFixed(2)}</div>
+            </div>
+            <button class="cart-remove" aria-label="Quitar" title="Quitar" data-idx="${idx}">&times;</button>
+          `;
+          items.appendChild(el);
+        });
+
+        const iva = subtotal * 0.15;
+        const total = subtotal + iva;
+        sSub && (sSub.textContent = subtotal.toFixed(2));
+        sIva && (sIva.textContent = iva.toFixed(2));
+        sTot && (sTot.textContent = total.toFixed(2));
+
+        // Quitar item
+        items.querySelectorAll('.cart-remove').forEach(b=>{
+          b.addEventListener('click', ()=> removeFromCart(parseInt(b.dataset.idx,10)));
+        });
+      }
+
+      (function(){
+        const btn = document.getElementById('cart-btn');
+        const panel = document.getElementById('cart-panel');
+        if(btn && panel){
+          btn.addEventListener('click', ()=>{
+            panel.style.display = (panel.style.display==='none' || !panel.style.display) ? 'block' : 'none';
+          });
+          document.addEventListener('click', (e)=>{
+            if(!panel.contains(e.target) && !btn.contains(e.target)) panel.style.display='none';
+          });
+        }
+
+        const pay = document.getElementById('cart-pay');
+        if(pay){
+          pay.addEventListener('click', async ()=>{
+            const list=getCart();
+            if(list.length===0){ alert('Tu carrito está vacío.'); return; }
+            try{
+              const r = await fetch('/cart/checkout', {
+                method:'POST',
+                headers:{ 'Content-Type':'application/json' },
+                body: JSON.stringify({ items:list })
+              });
+              if(r.ok){
+                clearCart();
+                // Asumimos que el backend devuelve HTML del comprobante
+                const html = await r.text();
+                const w = window.open('', '_self');
+                w.document.write(html); w.document.close();
+              } else {
+                const t = await r.text();
+                alert('No se pudo completar el checkout:\n' + t);
+              }
+            }catch(err){
+              alert('Error de red: '+err.message);
+            }
+          });
+        }
+
+        updateCartUI();
+      })();
+    </script>
   </body>
 </html>

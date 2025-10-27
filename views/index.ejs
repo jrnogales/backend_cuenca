@@ -25,7 +25,7 @@
       </select>
     </div>
 
-    <button id="btn-aplicar" class="btn-primary outline">Aplicar</button>
+    <button id="btn-aplicar" class="btn-primary outline" type="button">Aplicar</button>
   </form>
 </section>
 
@@ -45,7 +45,9 @@
     <article class="card" 
       data-id="<%= p.codigo %>" 
       data-pa="<%= pa %>" 
-      data-pn="<%= pn %>">
+      data-pn="<%= pn %>"
+      data-img="<%= p.imagen || '' %>"
+      data-title="<%= p.titulo %>">
 
       <div class="pic">
         <!-- Usar solo URL alojada en BD -->
@@ -75,25 +77,20 @@
             <div class="note">El precio varía en función del número de personas por grupo</div>
           </div>
 
-          <!-- ⬇️ AHORA: Añadir al carrito -->
-          <form class="add-cart" method="POST" action="/cart/add">
-            <input type="hidden" name="codigo"   class="h-id"    value="<%= p.codigo %>">
-            <input type="hidden" name="fecha"    class="h-fecha">
-            <input type="hidden" name="adultos"  class="h-adultos">
-            <input type="hidden" name="ninos"    class="h-ninos">
+          <!-- Controles de cantidad -->
+          <div class="qty">
+            <label>Adultos</label>
+            <input type="number" class="in-adultos" min="1" max="20" value="2">
+          </div>
+          <div class="qty">
+            <label>Niños</label>
+            <input type="number" class="in-ninos" min="0" max="20" value="0">
+          </div>
 
-            <div class="qty">
-              <label>Adultos</label>
-              <input type="number" class="in-adultos" min="1" max="20" value="2">
-            </div>
-            <div class="qty">
-              <label>Niños</label>
-              <input type="number" class="in-ninos" min="0" max="20" value="0">
-            </div>
+          <div class="total">Total: <strong class="total-val">$0.00</strong></div>
 
-            <div class="total">Total: <strong class="total-val">$0.00</strong></div>
-            <button class="btn-primary">Añadir al carrito</button>
-          </form>
+          <!-- Botón Añadir al carrito -->
+          <button class="btn-primary add-cart" type="button">Añadir al carrito</button>
         </div>
       </div>
     </article>
@@ -132,25 +129,23 @@
       const total = A * pa + N * pn;
 
       totalEl.textContent = '$' + total.toFixed(2);
-
-      card.querySelector('.h-adultos').value = A;
-      card.querySelector('.h-ninos').value   = N;
-      card.querySelector('.h-fecha').value   = $fecha.value || '';
     }
 
     // Inicializa todas las tarjetas
     document.querySelectorAll('.card').forEach(card => {
+      // valores por defecto desde la toolbar
       card.querySelector('.in-adultos').value = parseInt($adultSel.value, 10);
       card.querySelector('.in-ninos').value   = parseInt($ninoSel.value, 10);
       calcCard(card);
 
+      // listeners para recálculo
       card.querySelector('.in-adultos').addEventListener('input', () => calcCard(card));
       card.querySelector('.in-ninos').addEventListener('input', () => calcCard(card));
 
-      // ⬇️ Interceptamos el submit para /cart/add con fetch
-      card.querySelector('form.add-cart').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
+      // botón Añadir al carrito
+      const btnAdd = card.querySelector('.add-cart');
+      btnAdd.addEventListener('click', () => {
+        // Validación de fecha
         if (!$fecha.value) {
           alert('Selecciona una fecha.');
           return;
@@ -161,34 +156,31 @@
           return;
         }
 
-        // asegura hidden actualizados
-        calcCard(card);
+        const pa = parseFloat(card.dataset.pa || '0');
+        const pn = parseFloat(card.dataset.pn || '0');
+        const img = card.dataset.img || '';
+        const titulo = card.dataset.title || 'Paquete';
+        const codigo = card.dataset.id;
+        const A = Math.max(1, parseInt(card.querySelector('.in-adultos').value || '1', 10));
+        const N = Math.max(0, parseInt(card.querySelector('.in-ninos').value   || '0', 10));
 
-        const form = e.currentTarget;
-        const fd = new FormData(form);
+        const item = {
+          codigo,
+          titulo,
+          fecha: $fecha.value,
+          adultos: A,
+          ninos: N,
+          pa, pn,
+          img
+        };
 
-        try {
-          const resp = await fetch(form.action, {
-            method: 'POST',
-            body: new URLSearchParams(fd),
-            headers: { 'Accept': 'application/json' }
-          });
-
-          if (!resp.ok) {
-            const txt = await resp.text();
-            alert('No se pudo añadir al carrito: ' + txt);
-            return;
-          }
-
-          const data = await resp.json();
-          if (data.ok) {
-            const go = confirm('Añadido al carrito ✅\n¿Deseas ir al carrito ahora?');
-            if (go) location.href = '/cart';
-          } else {
-            alert('No se pudo añadir al carrito.');
-          }
-        } catch (err) {
-          alert('Error de red: ' + err.message);
+        if (typeof addToCart === 'function') {
+          addToCart(item);
+          // feedback corto
+          btnAdd.textContent = 'Añadido ✓';
+          setTimeout(()=>{ btnAdd.textContent = 'Añadir al carrito'; }, 900);
+        } else {
+          alert('No se pudo acceder al carrito.');
         }
       });
     });
