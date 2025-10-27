@@ -19,23 +19,31 @@ function calcTotals(items) {
 const day = x => String(x).slice(0, 10);
 
 /**
- * Disponibilidad REAL del día para un paquete (NO descuenta el carrito del usuario)
- * restantes = cupos_totales(30 por defecto) - cupos_reservados
+ * Lee disponibilidad del día para un paquete (NO considera carrito).
+ * Devuelve { totales, reservados, restantes }.
  */
 async function getDisponibilidadDia(paqueteId, fecha) {
+  console.log('🔎 [getDisponibilidadDia] preparando query', { paqueteId, fecha: day(fecha) });
+
   const q = `
     SELECT
-      COALESCE(cupos_totales, 30)::int   AS totales,
-      COALESCE(cupos_reservados, 0)::int AS reservados
+      COALESCE(cupos_totales, 30)::int        AS totales,
+      COALESCE(cupos_reservados, 0)::int      AS reservados,
+      (COALESCE(cupos_totales, 30)::int - COALESCE(cupos_reservados, 0)::int) AS restantes
     FROM disponibilidad
-    WHERE paquete_id = $1 AND fecha = $2::date
+    WHERE paquete_id = $1
+      AND fecha = $2::date
     LIMIT 1
   `;
-  const { rows, rowCount } = await pool.query(q, [paqueteId, fecha]);
-  const totales = rowCount ? Number(rows[0].totales) : 30;
-  const reservados = rowCount ? Number(rows[0].reservados) : 0;
-  const restantes = Math.max(0, totales - reservados);
-  return { totales, reservados, restantes };
+  const { rows } = await pool.query(q, [paqueteId, fecha]);
+
+  console.log('📦 [getDisponibilidadDia] rows devueltas', rows);
+
+  if (!rows.length) {
+    console.log('ℹ️ [getDisponibilidadDia] no había fila, asumo 30/0');
+    return { totales: 30, reservados: 0, restantes: 30 };
+  }
+  return rows[0];
 }
 
 /* ============== Controladores ============== */
@@ -59,6 +67,8 @@ export async function addToCart(req, res) {
     }
 
     const { codigo, fecha, adultos, ninos } = req.body;
+    console.log('🧾 [addToCart] payload recibido', { codigo, fecha, adultos, ninos, userId });
+
     if (!codigo || !fecha) {
       return res.status(400).json({ ok: false, message: 'Faltan datos: código y fecha.' });
     }
@@ -67,20 +77,29 @@ export async function addToCart(req, res) {
     const ni = Math.max(0, parseInt(ninos ?? 0, 10));
 
     const p = await getPaqueteByCodigo(codigo);
+    console.log('📘 [addToCart] paquete encontrado', p);
+
     if (!p) return res.status(404).json({ ok: false, message: 'Paquete no encontrado' });
 
-    // Disponibilidad real del día (no se descuenta lo del carrito)
-    const { restantes } = await getDisponibilidadDia(p.id, fecha);
+    // Disponibilidad real (solo BD)
+    console.log('🧩 [addToCart] consultando disponibilidad con', { paqueteId: p.id, fecha: day(fecha) });
+    const { totales, reservados, restantes } = await getDisponibilidadDia(p.id, fecha);
+    console.log('📊 [addToCart] disponibilidad', { totales, reservados, restantes });
+
     const solicitados = ad + ni;
 
+    if (restantes <= 0) {
+      return res.status(409).json({ ok: false, message: `No quedan cupos disponibles para ${day(fecha)}.` });
+    }
     if (solicitados > restantes) {
       return res.status(409).json({
         ok: false,
-        message: `No hay cupos suficientes para ${day(fecha)}. Quedan ${restantes}.`
+        message: `No hay cupos suficientes para ${day(fecha)}. Puedes agregar como máximo ${restantes} más.`
       });
     }
 
     const totalLinea = ad * Number(p.precio_adulto || 0) + ni * Number(p.precio_nino || 0);
+
     await addOrUpdateItem({
       usuarioId: userId,
       paqueteId: p.id,
@@ -92,8 +111,11 @@ export async function addToCart(req, res) {
 
     const items = await listCartByUser(userId);
     const totals = calcTotals(items);
+    console.log('✅ [addToCart] añadido OK. Totales:', totals);
+
     res.json({ ok: true, items, totals });
   } catch (e) {
+    console.error('❌ [addToCart] error', e);
     res.status(500).json({ ok: false, message: e.message });
   }
 }
@@ -111,6 +133,7 @@ export async function updateCartItem(req, res) {
     }
 
     const { itemId, adultos, ninos } = req.body;
+    console.log('📝 [updateCartItem] payload', { itemId, adultos, ninos });
 
     const all = await listCartByUser(userId);
     const it = all.find(r => String(r.id) === String(itemId));
@@ -119,14 +142,19 @@ export async function updateCartItem(req, res) {
     const ad = Math.max(1, parseInt(adultos ?? it.adultos, 10));
     const ni = Math.max(0, parseInt(ninos ?? it.ninos, 10));
     const newQty = ad + ni;
+    const currentQty = Number(it.adultos || 0) + Number(it.ninos || 0);
 
-    // Disponibilidad real del día (no se descuenta lo del carrito)
+    // Cuántos asientos hay disponibles en DB (no carrito)
     const { restantes } = await getDisponibilidadDia(it.paquete_id, it.fecha);
+    // Solo necesitamos asientos adicionales si newQty > currentQty
+    const delta = newQty - currentQty;
 
-    if (newQty > restantes) {
+    console.log('🔧 [updateCartItem] currentQty/newQty/delta/restantes', { currentQty, newQty, delta, restantes });
+
+    if (delta > 0 && delta > restantes) {
       return res.status(409).json({
         ok: false,
-        message: `No hay cupos suficientes para ${day(it.fecha)}. Quedan ${restantes}.`
+        message: `No hay cupos suficientes para ${day(it.fecha)}. Puedes aumentar como máximo ${restantes} más.`
       });
     }
 
@@ -135,8 +163,11 @@ export async function updateCartItem(req, res) {
 
     const items = await listCartByUser(userId);
     const totals = calcTotals(items);
+    console.log('✅ [updateCartItem] actualizado OK. Totales:', totals);
+
     res.json({ ok: true, items, totals });
   } catch (e) {
+    console.error('❌ [updateCartItem] error', e);
     res.status(500).json({ ok: false, message: e.message });
   }
 }
@@ -156,8 +187,11 @@ export async function removeFromCart(req, res) {
     await removeItem(userId, req.params.id);
     const items = await listCartByUser(userId);
     const totals = calcTotals(items);
+    console.log('🗑️ [removeFromCart] eliminado. Totales:', totals);
+
     res.json({ ok: true, items, totals });
   } catch (e) {
+    console.error('❌ [removeFromCart] error', e);
     res.status(500).json({ ok: false, message: e.message });
   }
 }
@@ -180,13 +214,15 @@ export async function checkoutCart(req, res) {
     const items = await listCartByUser(usuarioId);
     if (!items.length) return res.status(400).send('Carrito vacío');
 
+    console.log('🧾 [checkout] items', items);
+
     await client.query('BEGIN');
     let totalLote = 0;
 
     for (const it of items) {
       const { paquete_id, fecha, adultos, ninos } = it;
+      console.log('🔒 [checkout] bloqueando disponibilidad', { paquete_id, fecha: day(fecha) });
 
-      // Bloqueo/lectura de disponibilidad del día
       const dispQ = `
         SELECT id, cupos_totales, cupos_reservados
         FROM disponibilidad
@@ -218,7 +254,6 @@ export async function checkoutCart(req, res) {
         throw new Error(`Sin cupos para ${day(fecha)}.`);
       }
 
-      // Total con precios vigentes
       const pRes = await client.query('SELECT * FROM paquetes WHERE id=$1', [paquete_id]);
       const p = pRes.rows[0];
       const total = (Number(adultos) * Number(p.precio_adulto || 0)) +
@@ -250,6 +285,8 @@ export async function checkoutCart(req, res) {
     const iva = +(totalLote * 0.15).toFixed(2);
     const totalConIva = +(totalLote + iva).toFixed(2);
 
+    console.log('✅ [checkout] OK total sin IVA / con IVA', { totalLote, totalConIva });
+
     res.render('comprobante', {
       title: 'Compra confirmada',
       codigo: 'LOTE-' + Date.now().toString(36).toUpperCase(),
@@ -261,6 +298,7 @@ export async function checkoutCart(req, res) {
     });
   } catch (e) {
     await client.query('ROLLBACK');
+    console.error('❌ [checkout] error', e);
     res.status(400).send('No se pudo completar el checkout: ' + e.message);
   } finally {
     client.release();
