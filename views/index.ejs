@@ -131,50 +131,79 @@
     if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
   }
 
-  // ========= NUEVO: getRestantes robusto (evita Unexpected token '<') =========
+  // --- NUEVO: fetch robusto para disponibilidad ---
   async function getRestantes(codigo, fecha) {
     const resp = await fetch(`/api/disponibilidad/${encodeURIComponent(codigo)}?fecha=${encodeURIComponent(fecha)}`, {
       headers: { 'Accept': 'application/json' },
     });
-
     const ct = resp.headers.get('content-type') || '';
-
     if (!resp.ok) {
-      // Si el backend devuelve HTML (404), no rompas la UI
-      const body = ct.includes('application/json')
-        ? await resp.json().catch(() => ({}))
-        : await resp.text().catch(() => '');
-      console.warn('Disponibilidad no OK:', resp.status, body);
-      // Trata 404 como "0 disponibles" si ese es tu contrato
+      if (ct.includes('application/json')) { await resp.json().catch(()=>{}); }
+      else { await resp.text().catch(()=>{}); }
       if (resp.status === 404) return 0;
-      return 0; // Para otros errores, devuelve 0 o maneja como prefieras
-    }
-
-    if (!ct.includes('application/json')) {
-      const text = await resp.text();
-      console.error('Respuesta no JSON:', text.slice(0, 120));
       return 0;
     }
-
+    if (!ct.includes('application/json')) return 0;
     const j = await resp.json();
     return Number(j.restantes || 0);
   }
-  // ===========================================================================
 
+  // --- util de LS ---
   function readCart(){
     try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; }
   }
+
+  // 🔔 NUEVO: dispara evento para que el mini-cart se re-renderice
+  function emitCartUpdated(arr){
+    document.dispatchEvent(new CustomEvent('ct:cart-updated', { detail: arr }));
+  }
+
+  // 🧮 NUEVO: totales y badge “1 por paquete”
+  function computeTotals(arr){
+    const subtotal = arr.reduce((s, it) => s + Number(it.total || 0), 0);
+    const iva = +(subtotal * 0.15).toFixed(2);
+    const total = +(subtotal + iva).toFixed(2);
+    return { subtotal: +subtotal.toFixed(2), iva, total };
+  }
+
   function writeCart(arr){
     localStorage.setItem(KEY, JSON.stringify(arr));
-    // actualiza badge si existe
-    const count = arr.reduce((n, it)=> n + Number(it.adultos||0) + Number(it.ninos||0), 0);
+    // badge: 1 por ítem (no por personas)
+    const count = arr.length;
     const badge = document.querySelector('[data-cart-count]');
     if (badge) {
       badge.textContent = count;
       badge.style.display = count > 0 ? 'inline-block' : 'none';
     }
+    emitCartUpdated(arr);
   }
 
+  // 👂 Ejemplo de render del mini-carrito (si ya tienes uno, solo asegúrate de escuchar ct:cart-updated)
+  document.addEventListener('ct:cart-updated', (e)=>{
+    const arr = e.detail || [];
+    const mini = document.querySelector('[data-mini-cart]'); // <div data-mini-cart>…</div> en tu layout
+    if (!mini) return;
+    const { subtotal, iva, total } = computeTotals(arr);
+    mini.querySelector('[data-subtotal]')?.replaceChildren(`$${subtotal.toFixed(2)}`);
+    mini.querySelector('[data-iva]')?.replaceChildren(`$${iva.toFixed(2)}`);
+    mini.querySelector('[data-total]')?.replaceChildren(`$${total.toFixed(2)}`);
+
+    const list = mini.querySelector('[data-list]');
+    if (list) {
+      list.innerHTML = arr.map(it => `
+        <div class="mini-item">
+          <img src="${it.img || ''}" alt="${it.titulo || it.codigo}" />
+          <div class="mi-body">
+            <div class="mi-title">${it.codigo}</div>
+            <div class="mi-meta">${it.fecha} · A:${it.adultos} · N:${it.ninos}</div>
+            <div class="mi-price">$${(it.total||0).toFixed(2)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+  });
+
+  // ------- Cards -------
   document.querySelectorAll('.card[data-id]').forEach(card=>{
     const inA = card.querySelector('.in-adultos');
     const inN = card.querySelector('.in-ninos');
@@ -190,20 +219,29 @@
       if (!$fecha?.value) { alert('Selecciona una fecha antes de añadir.'); return; }
       if ($fecha.value < $fecha.min) { $fecha.value = $fecha.min; }
 
+      const pa = Number(card.dataset.pa || 0);
+      const pn = Number(card.dataset.pn || 0);
+      const A = Math.max(1, parseInt(inA?.value ?? '1', 10));
+      const N = Math.max(0, parseInt(inN?.value ?? '0', 10));
+      const totalLinea = (A * pa) + (N * pn);
+
       const item = {
         codigo: card.dataset.id,
+        titulo: card.dataset.title || card.dataset.id,
+        img:    card.dataset.img || '',
         fecha:  $fecha.value,
-        adultos: Math.max(1, parseInt(inA?.value ?? '1', 10)),
-        ninos:   Math.max(0, parseInt(inN?.value ?? '0', 10)),
+        adultos: A,
+        ninos:   N,
+        pa, pn,                 // guarda precios para recalcular sin recargar
+        total: totalLinea       // línea con total
       };
 
-      // Validar disponibilidad contra lo YA agregado + lo nuevo
+      // Validar disponibilidad contra lo YA agregado + lo nuevo (por (codigo,fecha))
       const restantes = await getRestantes(item.codigo, item.fecha);
       const cart = readCart();
       const ya = cart
         .filter(x => x.codigo === item.codigo && x.fecha === item.fecha)
         .reduce((n, x)=> n + Number(x.adultos||0) + Number(x.ninos||0), 0);
-
       const solic = item.adultos + item.ninos;
       if (ya + solic > restantes) {
         const disp = Math.max(0, restantes - ya);
@@ -211,8 +249,15 @@
         return;
       }
 
-      // Agregar al carrito (línea separada; si prefieres consolidar, puedes sumar cantidades)
-      cart.push(item);
+      // ✅ Consolidar por (codigo+fecha): “cada paquete cuenta como uno”
+      const idx = cart.findIndex(x => x.codigo === item.codigo && x.fecha === item.fecha);
+      if (idx >= 0) {
+        cart[idx].adultos += item.adultos;
+        cart[idx].ninos   += item.ninos;
+        cart[idx].total    = (cart[idx].adultos * cart[idx].pa) + (cart[idx].ninos * cart[idx].pn);
+      } else {
+        cart.push(item);
+      }
       writeCart(cart);
 
       // feedback
@@ -239,7 +284,8 @@
     });
   });
 
-  // inicializa badge al cargar
-  writeCart(readCart());
+  // inicializa badge + mini-cart al cargar
+  const init = readCart();
+  writeCart(init); // escribe para disparar el evento y actualizar UI
 })();
 </script>
