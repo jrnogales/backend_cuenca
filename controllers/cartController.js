@@ -7,7 +7,7 @@ import {
   removeItem,
   clearCart,
   updateItem
-} from './models/Carrito.js';
+} from '../models/Carrito.js';
 
 
 /* ================== Utils ================== */
