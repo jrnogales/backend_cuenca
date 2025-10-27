@@ -19,43 +19,23 @@ function calcTotals(items) {
 const day = x => String(x).slice(0, 10);
 
 /**
- * Cupos disponibles REALES para este usuario en la fecha indicada:
- * disponibles = totales - reservados - (lo que YA tiene en su carrito ese día)
+ * Disponibilidad REAL del día para un paquete (NO descuenta el carrito del usuario)
+ * restantes = cupos_totales(30 por defecto) - cupos_reservados
  */
-async function getDisponiblesParaUsuario(paqueteId, fecha, usuarioId) {
+async function getDisponibilidadDia(paqueteId, fecha) {
   const q = `
     SELECT
-      COALESCE(d.cupos_totales, 30)::int        AS totales,
-      COALESCE(d.cupos_reservados, 0)::int      AS reservados,
-      (
-        SELECT COALESCE(SUM(c.adultos + c.ninos), 0)::int
-        FROM carrito c
-        WHERE c.usuario_id = $3
-          AND c.paquete_id = $1
-          AND c.fecha = $2::date
-      )                                         AS en_carrito
-    FROM disponibilidad d
-    WHERE d.paquete_id = $1 AND d.fecha = $2::date
+      COALESCE(cupos_totales, 30)::int   AS totales,
+      COALESCE(cupos_reservados, 0)::int AS reservados
+    FROM disponibilidad
+    WHERE paquete_id = $1 AND fecha = $2::date
     LIMIT 1
   `;
-  const { rows } = await pool.query(q, [paqueteId, fecha, usuarioId]);
-
-  if (!rows.length) {
-    // No existe fila de disponibilidad: asumimos 30/0 y restamos lo del carrito del usuario
-    const { rows: enCar } = await pool.query(
-      `SELECT COALESCE(SUM(adultos + ninos),0)::int AS en_carrito
-         FROM carrito
-        WHERE usuario_id = $3 AND paquete_id = $1 AND fecha = $2::date`,
-      [paqueteId, fecha, usuarioId]
-    );
-    const enCarrito = Number(enCar[0]?.en_carrito || 0);
-    return Math.max(0, 30 - enCarrito);
-  }
-
-  const totales    = Number(rows[0].totales);
-  const reservados = Number(rows[0].reservados);
-  const enCarrito  = Number(rows[0].en_carrito);
-  return Math.max(0, totales - reservados - enCarrito);
+  const { rows, rowCount } = await pool.query(q, [paqueteId, fecha]);
+  const totales = rowCount ? Number(rows[0].totales) : 30;
+  const reservados = rowCount ? Number(rows[0].reservados) : 0;
+  const restantes = Math.max(0, totales - reservados);
+  return { totales, reservados, restantes };
 }
 
 /* ============== Controladores ============== */
@@ -89,17 +69,14 @@ export async function addToCart(req, res) {
     const p = await getPaqueteByCodigo(codigo);
     if (!p) return res.status(404).json({ ok: false, message: 'Paquete no encontrado' });
 
-    // Cupos disponibles reales para este usuario/fecha
-    const disponibles = await getDisponiblesParaUsuario(p.id, fecha, userId);
+    // Disponibilidad real del día (no se descuenta lo del carrito)
+    const { restantes } = await getDisponibilidadDia(p.id, fecha);
     const solicitados = ad + ni;
 
-    if (disponibles <= 0) {
-      return res.status(409).json({ ok: false, message: `No quedan cupos disponibles para ${day(fecha)}.` });
-    }
-    if (solicitados > disponibles) {
+    if (solicitados > restantes) {
       return res.status(409).json({
         ok: false,
-        message: `No hay cupos suficientes para ${day(fecha)}. Puedes agregar como máximo ${disponibles} más.`
+        message: `No hay cupos suficientes para ${day(fecha)}. Quedan ${restantes}.`
       });
     }
 
@@ -142,16 +119,14 @@ export async function updateCartItem(req, res) {
     const ad = Math.max(1, parseInt(adultos ?? it.adultos, 10));
     const ni = Math.max(0, parseInt(ninos ?? it.ninos, 10));
     const newQty = ad + ni;
-    const currentQty = Number(it.adultos || 0) + Number(it.ninos || 0);
 
-    // Cupos que aún puedes aumentar adicionalmente
-    const disponibles = await getDisponiblesParaUsuario(it.paquete_id, it.fecha, userId);
-    const maxPermitido = currentQty + disponibles;
+    // Disponibilidad real del día (no se descuenta lo del carrito)
+    const { restantes } = await getDisponibilidadDia(it.paquete_id, it.fecha);
 
-    if (newQty > maxPermitido) {
+    if (newQty > restantes) {
       return res.status(409).json({
         ok: false,
-        message: `No hay cupos suficientes para ${day(it.fecha)}. Puedes aumentar como máximo ${disponibles} más.`
+        message: `No hay cupos suficientes para ${day(it.fecha)}. Quedan ${restantes}.`
       });
     }
 
