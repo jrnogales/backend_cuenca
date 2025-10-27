@@ -1,36 +1,45 @@
 // routes/api.js
 import express from 'express';
 import { pool } from '../config/db.js';
+import { getPaqueteByCodigo } from '../models/Paquete.js';
 
 const router = express.Router();
 
-/**
- * GET /api/disponibilidad/:codigo?fecha=YYYY-MM-DD
- * Devuelve { restantes } (base 30 si no hay fila en disponibilidad)
- */
 router.get('/disponibilidad/:codigo', async (req, res) => {
   try {
     const { codigo } = req.params;
     const { fecha } = req.query;
-    if (!codigo || !fecha) return res.status(400).json({ restantes: 0, error: 'Faltan parámetros' });
 
-    const pRes = await pool.query('SELECT id FROM paquetes WHERE codigo=$1 LIMIT 1', [codigo]);
-    const p = pRes.rows[0];
-    if (!p) return res.status(404).json({ restantes: 0, error: 'Paquete no encontrado' });
-
-    const dRes = await pool.query(
-      'SELECT cupos_totales, cupos_reservados FROM disponibilidad WHERE paquete_id=$1 AND fecha=$2',
-      [p.id, fecha]
-    );
-    let restantes = 30;
-    if (dRes.rowCount) {
-      const tot = Number(dRes.rows[0].cupos_totales || 30);
-      const resv = Number(dRes.rows[0].cupos_reservados || 0);
-      restantes = Math.max(0, tot - resv);
+    if (!fecha) {
+      return res.status(400).json({ ok: false, error: 'Falta ?fecha=YYYY-MM-DD' });
     }
-    res.json({ restantes });
+
+    const paquete = await getPaqueteByCodigo(codigo);
+    if (!paquete) {
+      return res.status(404).json({ ok: false, error: 'Paquete no encontrado' });
+    }
+
+    const q = `
+      SELECT
+        COALESCE(cupos_totales, 30)::int   AS totales,
+        COALESCE(cupos_reservados, 0)::int AS reservados,
+        (COALESCE(cupos_totales, 30)::int - COALESCE(cupos_reservados, 0)::int) AS restantes
+      FROM disponibilidad
+      WHERE paquete_id = $1 AND fecha = $2::date
+      LIMIT 1
+    `;
+    const { rows } = await pool.query(q, [paquete.id, fecha]);
+
+    const base = rows[0] ?? { totales: 30, reservados: 0, restantes: 30 };
+
+    return res.json({
+      ok: true,
+      codigo,
+      fecha: String(fecha).slice(0, 10),
+      ...base,
+    });
   } catch (e) {
-    res.status(500).json({ restantes: 0, error: e.message });
+    return res.status(500).json({ ok: false, error: e.message });
   }
 });
 

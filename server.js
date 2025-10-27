@@ -13,16 +13,12 @@ import paquetesRoutes from './routes/paquetes.js';
 import authRoutes from './routes/auth.js';
 import checkoutRoutes from './routes/checkout.js';
 import reservasRoutes from './routes/reservas.js';
+import cartRoutes from './routes/cart.js';
+import apiRoutes from './routes/api.js'; // <- tu router de API
 
 // Middlewares/servicios
 import { attachUser } from './middleware/auth.js';
 import { attachSoap } from './soap/server.js';
-
-import cartRoutes from './routes/cart.js';
-
-import apiRoutes from './routes/api.js';
-
-
 
 dotenv.config();
 
@@ -38,6 +34,8 @@ app.use(cookieParser());
 /* ---------- Archivos estáticos ---------- */
 app.use('/img', express.static(path.join(__dirname, 'public/img')));
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
+// Si más adelante sirves JS propio, puedes habilitar:
+// app.use('/js', express.static(path.join(__dirname, 'public/js')));
 
 /* ---------- Motor de vistas (EJS) con layout ---------- */
 app.set('view engine', 'ejs');
@@ -59,14 +57,13 @@ app.engine('ejs', (file, data, cb) => {
 });
 
 /* ---------- Contexto de usuario en req y vistas ---------- */
-// Adjunta usuario si hay cookie válida
 app.use(attachUser);
 
 // Expone siempre `user` y `title` en las vistas
 app.use((req, res, next) => {
   let user = req.user || null;
 
-  // Si no lo puso attachUser, intentamos leer token por si acaso
+  // Intento extra por si no pasó attachUser
   if (!user) {
     const token = req.cookies?.token;
     if (token) {
@@ -83,13 +80,29 @@ app.use((req, res, next) => {
   next();
 });
 
-/* ---------- Rutas de aplicación ---------- */
+/* ---------- Rutas de API (JSON) ---------- */
+// IMPORTANTE: monta tu API bajo /api
+app.use('/api', apiRoutes);
+
+// 404 JSON para /api (evita HTML en caso de ruta inexistente)
+app.use('/api', (req, res) => {
+  res.status(404).json({ ok: false, error: 'Ruta de API no encontrada' });
+});
+
+// Manejador de errores JSON para /api
+app.use('/api', (err, req, res, next) => {
+  console.error('❌ Error en /api:', err);
+  res
+    .status(err.status || 500)
+    .json({ ok: false, error: err.message || 'Error interno' });
+});
+
+/* ---------- Rutas de aplicación (vistas) ---------- */
 app.use('/', paquetesRoutes);
 app.use('/', authRoutes);
 app.use('/checkout', checkoutRoutes);
 app.use('/', reservasRoutes); // /mis-reservas, /reservas/:codigo/cancelar, etc.
-app.use('/', cartRoutes); 
-app.use('/', apiRoutes);
+app.use('/', cartRoutes);
 app.use(debugRoutes);
 
 /* ---------- SOAP (para el BUS) ---------- */
@@ -99,6 +112,4 @@ attachSoap(app);
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`http://localhost:${port}  · WSDL: /soap/paquetes.wsdl`);
-
-  
 });

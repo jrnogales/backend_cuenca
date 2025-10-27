@@ -60,12 +60,12 @@
         <p class="meta">
           <span class="dot"></span> 
           <%= p.ciudad || 'Cuenca' %> · 
-          <%= (p.duracion_dias||1) %> horas
+          <%= (p.duracion_horas || ((p.duracion_dias||1)*8)) %> h
         </p>
 
         <ul class="perks">
           <li><span class="icon">✔</span> Cancelación gratuita</li>
-          <li><span class="icon">🕒</span> <%= (p.duracion_horas|| (p.duracion_dias||1)*8) %> h</li>
+          <li><span class="icon">🕒</span> <%= (p.duracion_horas || ((p.duracion_dias||1)*8)) %> h</li>
         </ul>
 
         <div class="divider"></div>
@@ -131,11 +131,35 @@
     if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
   }
 
+  // ========= NUEVO: getRestantes robusto (evita Unexpected token '<') =========
   async function getRestantes(codigo, fecha) {
-    const r = await fetch(`/api/disponibilidad/${encodeURIComponent(codigo)}?fecha=${encodeURIComponent(fecha)}`);
-    const j = await r.json().catch(()=>({restantes:0}));
+    const resp = await fetch(`/api/disponibilidad/${encodeURIComponent(codigo)}?fecha=${encodeURIComponent(fecha)}`, {
+      headers: { 'Accept': 'application/json' },
+    });
+
+    const ct = resp.headers.get('content-type') || '';
+
+    if (!resp.ok) {
+      // Si el backend devuelve HTML (404), no rompas la UI
+      const body = ct.includes('application/json')
+        ? await resp.json().catch(() => ({}))
+        : await resp.text().catch(() => '');
+      console.warn('Disponibilidad no OK:', resp.status, body);
+      // Trata 404 como "0 disponibles" si ese es tu contrato
+      if (resp.status === 404) return 0;
+      return 0; // Para otros errores, devuelve 0 o maneja como prefieras
+    }
+
+    if (!ct.includes('application/json')) {
+      const text = await resp.text();
+      console.error('Respuesta no JSON:', text.slice(0, 120));
+      return 0;
+    }
+
+    const j = await resp.json();
     return Number(j.restantes || 0);
   }
+  // ===========================================================================
 
   function readCart(){
     try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; }
@@ -187,7 +211,7 @@
         return;
       }
 
-      // Agregar al carrito (como línea separada; si prefieres consolidar, suma si coincide codigo+fecha)
+      // Agregar al carrito (línea separada; si prefieres consolidar, puedes sumar cantidades)
       cart.push(item);
       writeCart(cart);
 
