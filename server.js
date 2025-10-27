@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import jwt from 'jsonwebtoken';
 import ejs from 'ejs';
+import debugRoutes from './routes/debug.js';
 
 // Rutas
 import paquetesRoutes from './routes/paquetes.js';
@@ -21,7 +22,7 @@ import cartRoutes from './routes/cart.js';
 
 import apiRoutes from './routes/api.js';
 
-import debugRoutes from './routes/debug.js';
+
 
 dotenv.config();
 
