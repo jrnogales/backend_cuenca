@@ -19,6 +19,8 @@ import { attachSoap } from './soap/server.js';
 
 import cartRoutes from './routes/cart.js';
 
+import apiRoutes from './routes/api.js';
+
 dotenv.config();
 
 const app = express();
@@ -84,6 +86,7 @@ app.use('/', authRoutes);
 app.use('/checkout', checkoutRoutes);
 app.use('/', reservasRoutes); // /mis-reservas, /reservas/:codigo/cancelar, etc.
 app.use('/', cartRoutes); 
+app.use('/', apiRoutes);
 
 /* ---------- SOAP (para el BUS) ---------- */
 attachSoap(app);

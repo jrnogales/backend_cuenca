@@ -41,7 +41,11 @@ export async function login(req, res) {
   const token = jwt.sign({ id: u.id, nombre: u.nombre, email: u.email }, process.env.JWT_SECRET, { expiresIn: '2d' });
   res.cookie('token', token, { httpOnly: true, sameSite: 'lax' });
   return res.redirect(nextUrl);
+  
 }
+const nextUrl = req.body.next || '/';
+return res.redirect(nextUrl); // esto hará GET /cart/checkout
+
 
 export function logout(req, res) {
   res.clearCookie('token');
