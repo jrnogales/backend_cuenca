@@ -114,113 +114,117 @@
       <%- body %>
     </main>
 
-    <!-- ===== Script global del carrito (localStorage + UI + checkout) ===== -->
-    <script>
-      // Clave de almacenamiento
-      const CART_KEY = 'cart_v1';
+   <script>
+  // === Carrito global unificado ===
+  const CART_KEY = 'ct_cart';  // <— unificada
 
-      function getCart(){
-        try { return JSON.parse(localStorage.getItem(CART_KEY)||'[]'); }
-        catch { return []; }
-      }
-      function setCart(list){
-        localStorage.setItem(CART_KEY, JSON.stringify(list));
-        updateCartUI();
-      }
-      function addToCart(item){
-        const list = getCart(); list.push(item); setCart(list);
-      }
-      function removeFromCart(idx){
-        const list = getCart(); list.splice(idx,1); setCart(list);
-      }
-      function clearCart(){ setCart([]); }
+  function getCart() {
+    try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); }
+    catch { return []; }
+  }
+  function setCart(list) {
+    localStorage.setItem(CART_KEY, JSON.stringify(list));
+    updateCartUI();
+  }
+  function addToCart(item) {
+    const list = getCart();
+    list.push(item);
+    setCart(list);
+  }
+  function removeFromCart(idx) {
+    const list = getCart();
+    list.splice(idx, 1);
+    setCart(list);
+  }
+  function clearCart() { setCart([]); }
 
-      function updateCartUI(){
+  function updateCartUI() {
+    const list = getCart();
+    const badge = document.getElementById('cart-badge');
+    const items = document.getElementById('cart-items');
+    const sSub  = document.getElementById('cart-sub');
+    const sIva  = document.getElementById('cart-iva');
+    const sTot  = document.getElementById('cart-total');
+    if (!badge || !items) return;
+
+    // badge = total de personas en carrito
+    const people = list.reduce((n, it) => n + Number(it.adultos||0) + Number(it.ninos||0), 0);
+    if (people > 0) { badge.textContent = people; badge.style.display = 'inline-block'; }
+    else { badge.style.display = 'none'; }
+
+    // render items
+    items.innerHTML = '';
+    let subtotal = 0;
+    list.forEach((it, idx) => {
+      const pa = Number(it.pa || 0);
+      const pn = Number(it.pn || 0);
+      const line = (Number(it.adultos||0) * pa) + (Number(it.ninos||0) * pn);
+      subtotal += line;
+      const el = document.createElement('div');
+      el.className = 'cart-item';
+      el.innerHTML = `
+        <img src="${it.img||''}" alt="">
+        <div>
+          <div style="font-weight:600">${it.titulo || it.codigo || 'Paquete'}</div>
+          <div style="font-size:12px; color:#6b7280">${it.fecha} · A:${it.adultos} · N:${it.ninos}</div>
+          <div style="font-size:12px;">$${line.toFixed(2)}</div>
+        </div>
+        <button class="cart-remove" aria-label="Quitar" title="Quitar" data-idx="${idx}">&times;</button>
+      `;
+      items.appendChild(el);
+    });
+
+    const iva = subtotal * 0.15;
+    const total = subtotal + iva;
+    if (sSub) sSub.textContent = subtotal.toFixed(2);
+    if (sIva) sIva.textContent = iva.toFixed(2);
+    if (sTot) sTot.textContent = total.toFixed(2);
+
+    items.querySelectorAll('.cart-remove').forEach(b => {
+      b.addEventListener('click', () => removeFromCart(parseInt(b.dataset.idx, 10)));
+    });
+  }
+
+  (function () {
+    const btn = document.getElementById('cart-btn');
+    const panel = document.getElementById('cart-panel');
+    if (btn && panel) {
+      btn.addEventListener('click', () => {
+        panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'block' : 'none';
+      });
+      document.addEventListener('click', (e) => {
+        if (!panel.contains(e.target) && !btn.contains(e.target)) panel.style.display = 'none';
+      });
+    }
+
+    const pay = document.getElementById('cart-pay');
+    if (pay) {
+      pay.addEventListener('click', async () => {
         const list = getCart();
-        const badge = document.getElementById('cart-badge');
-        const items = document.getElementById('cart-items');
-        const sSub = document.getElementById('cart-sub');
-        const sIva = document.getElementById('cart-iva');
-        const sTot = document.getElementById('cart-total');
-        if(!badge || !items) return;
-
-        // Badge
-        if(list.length>0){ badge.textContent = list.length; badge.style.display='inline-block'; }
-        else { badge.style.display='none'; }
-
-        // Items
-        items.innerHTML = '';
-        let subtotal = 0;
-        list.forEach((it, idx)=>{
-          const line = (Number(it.adultos||0)*Number(it.pa||0)) + (Number(it.ninos||0)*Number(it.pn||0));
-          subtotal += line;
-          const el = document.createElement('div');
-          el.className = 'cart-item';
-          el.innerHTML = `
-            <img src="${it.img||''}" alt="">
-            <div>
-              <div style="font-weight:600">${(it.titulo||it.codigo||'Paquete')}</div>
-              <div style="font-size:12px; color:#6b7280">${it.fecha} · A:${it.adultos} · N:${it.ninos}</div>
-              <div style="font-size:12px;">$${line.toFixed(2)}</div>
-            </div>
-            <button class="cart-remove" aria-label="Quitar" title="Quitar" data-idx="${idx}">&times;</button>
-          `;
-          items.appendChild(el);
-        });
-
-        const iva = subtotal * 0.15;
-        const total = subtotal + iva;
-        sSub && (sSub.textContent = subtotal.toFixed(2));
-        sIva && (sIva.textContent = iva.toFixed(2));
-        sTot && (sTot.textContent = total.toFixed(2));
-
-        // Quitar item
-        items.querySelectorAll('.cart-remove').forEach(b=>{
-          b.addEventListener('click', ()=> removeFromCart(parseInt(b.dataset.idx,10)));
-        });
-      }
-
-      (function(){
-        const btn = document.getElementById('cart-btn');
-        const panel = document.getElementById('cart-panel');
-        if(btn && panel){
-          btn.addEventListener('click', ()=>{
-            panel.style.display = (panel.style.display==='none' || !panel.style.display) ? 'block' : 'none';
+        if (!Array.isArray(list) || list.length === 0) { alert('Tu carrito está vacío.'); return; }
+        try {
+          const r = await fetch('/cart/checkout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items: list })
           });
-          document.addEventListener('click', (e)=>{
-            if(!panel.contains(e.target) && !btn.contains(e.target)) panel.style.display='none';
-          });
+          if (r.ok) {
+            clearCart();
+            const html = await r.text();
+            const w = window.open('', '_self');
+            w.document.write(html); w.document.close();
+          } else {
+            const t = await r.text();
+            alert('No se pudo completar el checkout:\n' + t);
+          }
+        } catch (err) {
+          alert('Error de red: ' + err.message);
         }
+      });
+    }
 
-        const pay = document.getElementById('cart-pay');
-        if(pay){
-          pay.addEventListener('click', async ()=>{
-            const list=getCart();
-            if(list.length===0){ alert('Tu carrito está vacío.'); return; }
-            try{
-              const r = await fetch('/cart/checkout', {
-                method:'POST',
-                headers:{ 'Content-Type':'application/json' },
-                body: JSON.stringify({ items:list })
-              });
-              if(r.ok){
-                clearCart();
-                // Asumimos que el backend devuelve HTML del comprobante
-                const html = await r.text();
-                const w = window.open('', '_self');
-                w.document.write(html); w.document.close();
-              } else {
-                const t = await r.text();
-                alert('No se pudo completar el checkout:\n' + t);
-              }
-            }catch(err){
-              alert('Error de red: '+err.message);
-            }
-          });
-        }
-
-        updateCartUI();
-      })();
-    </script>
-  </body>
-</html>
+    // migración: borrar posible llave vieja
+    try { localStorage.removeItem('cart_v1'); } catch {}
+    updateCartUI();
+  })();
+</script>
