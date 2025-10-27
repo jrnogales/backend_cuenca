@@ -78,10 +78,18 @@ export async function addToCart(req, res) {
     const p = await getPaqueteByCodigo(codigo);
     if (!p) return res.status(404).json({ ok: false, message: 'Paquete no encontrado' });
 
+    // 🔹 Validar disponibilidad real antes de agregar
     const disp = await getDisponibilidad(p.id, fecha);
     const yaEnCarrito = await getUserCartQtyForDate(userId, p.id, fecha);
     const solicitadosAhora = ad + ni;
     const restantesParaUsuario = Math.max(0, disp.restantes - yaEnCarrito);
+
+    if (restantesParaUsuario <= 0) {
+      return res.status(409).json({
+        ok: false,
+        message: `No quedan cupos disponibles para ${fecha}.`
+      });
+    }
 
     if (solicitadosAhora > restantesParaUsuario) {
       return res.status(409).json({
@@ -91,6 +99,7 @@ export async function addToCart(req, res) {
       });
     }
 
+    // 🔹 Si hay disponibilidad, agrega o actualiza el carrito normalmente
     const totalLinea = ad * Number(p.precio_adulto || 0) + ni * Number(p.precio_nino || 0);
 
     await addOrUpdateItem({
@@ -201,13 +210,11 @@ export async function checkoutCart(req, res) {
     if (!items.length) return res.status(400).send('Carrito vacío');
 
     await client.query('BEGIN');
-
     let totalLote = 0;
 
     for (const it of items) {
       const { paquete_id, fecha, adultos, ninos } = it;
 
-      // 1) Bloquear/leer disponibilidad
       const dispQ = `
         SELECT id, cupos_totales, cupos_reservados
         FROM disponibilidad
@@ -239,7 +246,6 @@ export async function checkoutCart(req, res) {
         throw new Error(`Sin cupos para ${it.titulo || 'paquete'} el ${fecha}.`);
       }
 
-      // 2) Cálculo total con precios vigentes
       const pRes = await client.query('SELECT * FROM paquetes WHERE id=$1', [paquete_id]);
       const p = pRes.rows[0];
       const total = (Number(adultos) * Number(p.precio_adulto || 0)) +
@@ -250,7 +256,6 @@ export async function checkoutCart(req, res) {
         'RES-' + new Date().toISOString().slice(0,10).replace(/-/g,'') +
         '-'    + Math.random().toString(36).slice(2,6).toUpperCase();
 
-      // 3) Insertar reserva
       await client.query(
         `INSERT INTO reservas
           (codigo_reserva, paquete_id, usuario_id, fecha_viaje, adultos, ninos, total_usd, origen)
@@ -258,7 +263,6 @@ export async function checkoutCart(req, res) {
         [bookingId, paquete_id, usuarioId, fecha, adultos, ninos, total]
       );
 
-      // 4) Actualizar cupos_reservados
       await client.query(
         `UPDATE disponibilidad
            SET cupos_reservados = cupos_reservados + $2
@@ -267,7 +271,6 @@ export async function checkoutCart(req, res) {
       );
     }
 
-    // 5) Vaciar carrito del usuario
     await client.query(`DELETE FROM carrito WHERE usuario_id = $1`, [usuarioId]);
     await client.query('COMMIT');
 

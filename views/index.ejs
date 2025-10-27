@@ -99,11 +99,22 @@
 
 <script>
 (function () {
-  // ===== utils =====
+  const KEY = 'ct_cart'; // carrito en localStorage
+
   function todayLocalISO() {
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().slice(0, 10);
+  }
+
+  const $adultSel = document.getElementById('f-adultos');
+  const $ninoSel  = document.getElementById('f-ninos');
+  const $fecha    = document.getElementById('f-fecha');
+  const $apply    = document.getElementById('btn-aplicar');
+
+  if ($fecha) {
+    $fecha.min = todayLocalISO();
+    if (!$fecha.value || $fecha.value < $fecha.min) $fecha.value = $fecha.min;
   }
 
   function calcCard(card){
@@ -120,52 +131,26 @@
     if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
   }
 
-  async function apiAddToCart(payload){
-    try {
-      const res = await fetch('/cart/add', {
-        method: 'POST',
-        headers: { 'Content-Type':'application/json' },
-        body: JSON.stringify(payload)
-      });
+  async function getRestantes(codigo, fecha) {
+    const r = await fetch(`/api/disponibilidad/${encodeURIComponent(codigo)}?fecha=${encodeURIComponent(fecha)}`);
+    const j = await r.json().catch(()=>({restantes:0}));
+    return Number(j.restantes || 0);
+  }
 
-      if (res.status === 401) {
-        // si el backend devolvió JSON con redirect, úsalo; si no, redirige al login con next=/cart
-        let data = null;
-        try { data = await res.json(); } catch {}
-        const redirect = (data && data.redirect) ? data.redirect
-          : '/login?msg=Debes%20iniciar%20sesion&next=' + encodeURIComponent('/cart');
-        location.href = redirect;
-        return null;
-      }
-      if (res.status === 409) {
-        const data = await res.json().catch(()=>({}));
-        alert(data.message || 'No hay cupos suficientes para esa fecha.');
-        return null;
-      }
-      if (!res.ok) {
-        const txt = await res.text();
-        alert(txt || 'No se pudo añadir al carrito.');
-        return null;
-      }
-      return await res.json();
-    } catch (e) {
-      alert('Error de red al añadir al carrito.');
-      return null;
+  function readCart(){
+    try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; }
+  }
+  function writeCart(arr){
+    localStorage.setItem(KEY, JSON.stringify(arr));
+    // actualiza badge si existe
+    const count = arr.reduce((n, it)=> n + Number(it.adultos||0) + Number(it.ninos||0), 0);
+    const badge = document.querySelector('[data-cart-count]');
+    if (badge) {
+      badge.textContent = count;
+      badge.style.display = count > 0 ? 'inline-block' : 'none';
     }
   }
 
-  // ===== refs =====
-  const $adultSel = document.getElementById('f-adultos');
-  const $ninoSel  = document.getElementById('f-ninos');
-  const $fecha    = document.getElementById('f-fecha');
-  const $apply    = document.getElementById('btn-aplicar');
-
-  if ($fecha) {
-    $fecha.min = todayLocalISO();
-    if (!$fecha.value || $fecha.value < $fecha.min) $fecha.value = $fecha.min;
-  }
-
-  // ===== init cards =====
   document.querySelectorAll('.card[data-id]').forEach(card=>{
     const inA = card.querySelector('.in-adultos');
     const inN = card.querySelector('.in-ninos');
@@ -176,51 +161,49 @@
     inA?.addEventListener('input', ()=>calcCard(card));
     inN?.addEventListener('input', ()=>calcCard(card));
 
-    // *** Botón correcto: .add-cart (evita selectores raros) ***
     const btnAdd = card.querySelector('.add-cart');
     btnAdd?.addEventListener('click', async ()=>{
       if (!$fecha?.value) { alert('Selecciona una fecha antes de añadir.'); return; }
       if ($fecha.value < $fecha.min) { $fecha.value = $fecha.min; }
 
-      const payload = {
+      const item = {
         codigo: card.dataset.id,
         fecha:  $fecha.value,
-        adultos: Math.max(1, parseInt(card.querySelector('.in-adultos')?.value ?? '1', 10)),
-        ninos:   Math.max(0, parseInt(card.querySelector('.in-ninos')?.value ?? '0', 10))
+        adultos: Math.max(1, parseInt(inA?.value ?? '1', 10)),
+        ninos:   Math.max(0, parseInt(inN?.value ?? '0', 10)),
       };
 
+      // Validar disponibilidad contra lo YA agregado + lo nuevo
+      const restantes = await getRestantes(item.codigo, item.fecha);
+      const cart = readCart();
+      const ya = cart
+        .filter(x => x.codigo === item.codigo && x.fecha === item.fecha)
+        .reduce((n, x)=> n + Number(x.adultos||0) + Number(x.ninos||0), 0);
+
+      const solic = item.adultos + item.ninos;
+      if (ya + solic > restantes) {
+        const disp = Math.max(0, restantes - ya);
+        alert(`No hay cupos suficientes para ${item.fecha}. Puedes agregar como máximo ${disp} más.`);
+        return;
+      }
+
+      // Agregar al carrito (como línea separada; si prefieres consolidar, suma si coincide codigo+fecha)
+      cart.push(item);
+      writeCart(cart);
+
+      // feedback
       const prev = btnAdd.textContent;
       btnAdd.disabled = true;
-      btnAdd.textContent = 'Añadiendo…';
-
-      const data = await apiAddToCart(payload);
-
-      btnAdd.textContent = prev;
-      btnAdd.disabled = false;
-
-      if (data && data.ok) {
-        // actualiza badge si existe en tu layout: <span data-cart-count>0</span>
-        const count = data.items?.reduce((n, it)=> n + Number(it.adultos||0) + Number(it.ninos||0), 0) || 0;
-        const badge = document.querySelector('[data-cart-count]');
-        if (badge) {
-          badge.textContent = count;
-          badge.style.display = count > 0 ? 'inline-block' : 'none';
-        }
-
-        btnAdd.textContent = 'Añadido ✓';
-        btnAdd.disabled = true;
-        setTimeout(()=>{ btnAdd.textContent = prev; btnAdd.disabled = false; }, 800);
-      }
+      btnAdd.textContent = 'Añadido ✓';
+      setTimeout(()=>{ btnAdd.textContent = prev; btnAdd.disabled = false; }, 800);
     });
   });
 
-  // fecha change -> recalc
   $fecha?.addEventListener('change', ()=>{
     if ($fecha.value < $fecha.min) $fecha.value = $fecha.min;
     document.querySelectorAll('.card[data-id]').forEach(calcCard);
   });
 
-  // aplicar -> sincroniza cantidades con toolbar
   $apply?.addEventListener('click', ()=>{
     if ($fecha.value < $fecha.min) $fecha.value = $fecha.min;
     document.querySelectorAll('.card[data-id]').forEach(card=>{
@@ -231,5 +214,8 @@
       calcCard(card);
     });
   });
+
+  // inicializa badge al cargar
+  writeCart(readCart());
 })();
 </script>

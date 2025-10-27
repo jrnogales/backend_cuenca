@@ -1,33 +1,18 @@
 // routes/cart.js
 import express from 'express';
 import { requireAuth } from '../middleware/auth.js';
-import {
-  showCart,
-  addToCart,
-  updateCartItem,
-  removeFromCart,
-  checkoutCart
-} from '../controllers/cartController.js';
+import { checkoutCart } from '../controllers/cartController.js';
 
 const router = express.Router();
 
-// === UI del carrito ===
-router.get('/cart', requireAuth, showCart);
-
-// === APIs del carrito ===
-router.post('/cart/add', requireAuth, addToCart);
-router.post('/cart/update', requireAuth, updateCartItem);
-router.post('/cart/remove/:id', requireAuth, removeFromCart);
-
-// === Checkout ===
-// Si el usuario llega por GET (por ejemplo, después del login), mostramos una vista
-// que toma el carrito del localStorage y dispara el POST automáticamente.
+/** GET /cart/checkout – vista que auto-postea el carrito del localStorage */
 router.get('/cart/checkout', requireAuth, (req, res) => {
   res.render('cart-checkout', { title: 'Procesando pago' });
 });
 
-// Checkout real (POST)
+/** POST /cart/checkout – procesa la compra usando req.body.items */
 router.post('/cart/checkout', requireAuth, checkoutCart);
 
 export default router;
+
 
