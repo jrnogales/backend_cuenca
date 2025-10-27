@@ -1,7 +1,13 @@
 // controllers/cartController.js
 import { pool } from '../config/db.js';
 import { getPaqueteByCodigo } from '../models/Paquete.js';
-import { addOrUpdateItem, listCartByUser, removeItem, clearCart, updateItem } from '../models/Carrito.js';
+import {
+  addOrUpdateItem,
+  listCartByUser,
+  removeItem,
+  clearCart,
+  updateItem
+} from '../models/Carrito.js';
 
 /** Util: calcula totales con IVA 15% */
 function calcTotals(items) {
@@ -89,7 +95,10 @@ export async function removeFromCart(req, res) {
   }
 }
 
-/** POST /cart/checkout  – compra TODO el carrito */
+/**
+ * POST /cart/checkout – compra TODO el carrito
+ * Usa la tabla disponibilidad(paquete_id, fecha, cupos_totales, cupos_reservados)
+ */
 export async function checkoutCart(req, res) {
   const client = await pool.connect();
   try {
@@ -99,48 +108,56 @@ export async function checkoutCart(req, res) {
 
     await client.query('BEGIN');
 
-    // Para cada ítem, verificamos disponibilidad y creamos reserva
+    // Suma para mostrar comprobante
+    let totalLote = 0;
+
     for (const it of items) {
       const { paquete_id, fecha, adultos, ninos } = it;
 
-      // Verifica disponibilidad por fecha (usa tu tabla disponibilidad_…)
-      const capQ = `
-        SELECT capacidad, reservados 
-        FROM disponibilidad_paquete 
-        WHERE paquete_id=$1 AND fecha=$2
+      // 1) Bloquea/lee disponibilidad de ese día
+      const dispQ = `
+        SELECT id, cupos_totales, cupos_reservados
+        FROM disponibilidad
+        WHERE paquete_id = $1 AND fecha = $2
         FOR UPDATE
       `;
-      const capRes = await client.query(capQ, [paquete_id, fecha]);
-      let capacidad = 30, reservados = 0;
+      const dispRes = await client.query(dispQ, [paquete_id, fecha]);
 
-      if (capRes.rowCount) {
-        capacidad = Number(capRes.rows[0].capacidad);
-        reservados = Number(capRes.rows[0].reservados);
+      let dispId = null;
+      let cuposTotales = 30;
+      let cuposReservados = 0;
+
+      if (dispRes.rowCount) {
+        dispId = dispRes.rows[0].id;
+        cuposTotales = Number(dispRes.rows[0].cupos_totales || 30);
+        cuposReservados = Number(dispRes.rows[0].cupos_reservados || 0);
       } else {
-        // si no existe, crea registro base 30
-        await client.query(
-          `INSERT INTO disponibilidad_paquete (paquete_id, fecha, capacidad, reservados)
-           VALUES ($1,$2,30,0)`,
+        // Si no existe fila para ese día, crea base 30
+        const ins = await client.query(
+          `INSERT INTO disponibilidad (paquete_id, fecha, cupos_totales, cupos_reservados)
+           VALUES ($1,$2,30,0) RETURNING id`,
           [paquete_id, fecha]
         );
+        dispId = ins.rows[0].id;
       }
 
       const solicitados = Number(adultos) + Number(ninos);
-      if (reservados + solicitados > capacidad) {
+      if (cuposReservados + solicitados > cuposTotales) {
         throw new Error(`Sin cupos para ${it.titulo} el ${fecha}.`);
       }
 
-      // Obtén precios actuales para cálculo final
+      // 2) Calcula total real con precios vigentes
       const pRes = await client.query('SELECT * FROM paquetes WHERE id=$1', [paquete_id]);
       const p = pRes.rows[0];
       const total = (Number(adultos) * Number(p.precio_adulto || 0)) +
                     (Number(ninos)   * Number(p.precio_nino   || 0));
+      totalLote += total;
 
       const bookingId =
         'RES-' + new Date().toISOString().slice(0,10).replace(/-/g,'') +
         '-'    + Math.random().toString(36).slice(2,6).toUpperCase();
 
-      // Inserta reserva
+      // 3) Inserta reserva
       await client.query(
         `INSERT INTO reservas
           (codigo_reserva, paquete_id, usuario_id, fecha_viaje, adultos, ninos, total_usd, origen)
@@ -148,21 +165,24 @@ export async function checkoutCart(req, res) {
         [bookingId, paquete_id, usuarioId, fecha, adultos, ninos, total]
       );
 
-      // Actualiza reservados
+      // 4) Actualiza cupos_reservados
       await client.query(
-        `UPDATE disponibilidad_paquete
-            SET reservados = reservados + $3
-          WHERE paquete_id = $1 AND fecha = $2`,
-        [paquete_id, fecha, solicitados]
+        `UPDATE disponibilidad
+           SET cupos_reservados = cupos_reservados + $2
+         WHERE id = $1`,
+        [dispId, solicitados]
       );
     }
 
-    // Vacía carrito
+    // 5) Vacía carrito del usuario
     await client.query(`DELETE FROM carrito WHERE usuario_id=$1`, [usuarioId]);
 
     await client.query('COMMIT');
 
-    // Mostrar comprobante simple
+    // IVA 15% para mostrar
+    const iva = +(totalLote * 0.15).toFixed(2);
+    const totalConIva = +(totalLote + iva).toFixed(2);
+
     res.render('comprobante', {
       title: 'Compra confirmada',
       codigo: 'LOTE-' + Date.now().toString(36).toUpperCase(),
@@ -170,7 +190,7 @@ export async function checkoutCart(req, res) {
       fecha: new Date().toISOString().slice(0, 10),
       adultos: 0,
       ninos: 0,
-      total: 0
+      total: totalConIva
     });
   } catch (e) {
     await client.query('ROLLBACK');
