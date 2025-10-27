@@ -99,104 +99,125 @@
 
 <script>
   (function () {
-    // === FECHA MÍNIMA: hoy en formato local YYYY-MM-DD ===
+    // ===== util fecha hoy en local YYYY-MM-DD =====
     function todayLocalISO() {
       const d = new Date();
-      d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); // evita saltos de día por zona horaria
+      d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
       return d.toISOString().slice(0, 10);
     }
 
+    // ===== referencias UI existentes =====
     const $adultSel = document.getElementById('f-adultos');
     const $ninoSel  = document.getElementById('f-ninos');
     const $fecha    = document.getElementById('f-fecha');
     const $apply    = document.getElementById('btn-aplicar');
 
-    // Fijar min y valor inicial válido para el date
-    $fecha.min = todayLocalISO();
-    if (!$fecha.value || $fecha.value < $fecha.min) {
-      $fecha.value = $fecha.min;
+    // fecha min + valor por defecto
+    if ($fecha) {
+      $fecha.min = todayLocalISO();
+      if (!$fecha.value || $fecha.value < $fecha.min) $fecha.value = $fecha.min;
     }
 
-    function calcCard(card) {
-      const pa = parseFloat(card.dataset.pa || '0');
-      const pn = parseFloat(card.dataset.pn || '0');
+    // ===== cálculo por tarjeta =====
+    function calcCard(card){
+      const pa = Number(card.dataset.pa || 0); // precio adulto
+      const pn = Number(card.dataset.pn || 0); // precio niño
+
       const inA = card.querySelector('.in-adultos');
       const inN = card.querySelector('.in-ninos');
       const totalEl = card.querySelector('.total-val');
 
-      const A = Math.max(1, parseInt(inA.value || '1', 10));
-      const N = Math.max(0, parseInt(inN.value || '0', 10));
-      const total = A * pa + N * pn;
+      const A = Math.max(1, parseInt(inA?.value ?? '1', 10));
+      const N = Math.max(0, parseInt(inN?.value ?? '0', 10));
 
-      totalEl.textContent = '$' + total.toFixed(2);
+      const total = (A * pa) + (N * pn);
+      if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
+
+      // sync hidden inputs para tu POST /checkout (por si lo usas)
+      const hA = card.querySelector('.h-adultos');
+      const hN = card.querySelector('.h-ninos');
+      const hF = card.querySelector('.h-fecha');
+      const hT = card.querySelector('.h-total');
+      if (hA) hA.value = A;
+      if (hN) hN.value = N;
+      if (hF) hF.value = $fecha?.value || '';
+      if (hT) hT.value = total.toFixed(2);
     }
 
-    // Inicializa todas las tarjetas
-    document.querySelectorAll('.card').forEach(card => {
-      // valores por defecto desde la toolbar
-      card.querySelector('.in-adultos').value = parseInt($adultSel.value, 10);
-      card.querySelector('.in-ninos').value   = parseInt($ninoSel.value, 10);
+    // ===== inicialización de todas las tarjetas =====
+    document.querySelectorAll('.card[data-id]').forEach(card=>{
+      // sync inicial con selectores de la toolbar
+      const inA = card.querySelector('.in-adultos');
+      const inN = card.querySelector('.in-ninos');
+      if (inA) inA.value = parseInt($adultSel?.value ?? '2', 10);
+      if (inN) inN.value = parseInt($ninoSel?.value ?? '0', 10);
       calcCard(card);
 
-      // listeners para recálculo
-      card.querySelector('.in-adultos').addEventListener('input', () => calcCard(card));
-      card.querySelector('.in-ninos').addEventListener('input', () => calcCard(card));
+      // listeners de cantidad
+      inA?.addEventListener('input', ()=>calcCard(card));
+      inN?.addEventListener('input', ()=>calcCard(card));
 
-      // botón Añadir al carrito
-      const btnAdd = card.querySelector('.add-cart');
-      btnAdd.addEventListener('click', () => {
-        // Validación de fecha
-        if (!$fecha.value) {
-          alert('Selecciona una fecha.');
-          return;
-        }
-        if ($fecha.value < $fecha.min) {
-          $fecha.value = $fecha.min;
-          alert('No puedes seleccionar una fecha pasada.');
-          return;
-        }
-
-        const pa = parseFloat(card.dataset.pa || '0');
-        const pn = parseFloat(card.dataset.pn || '0');
-        const img = card.dataset.img || '';
-        const titulo = card.dataset.title || 'Paquete';
-        const codigo = card.dataset.id;
-        const A = Math.max(1, parseInt(card.querySelector('.in-adultos').value || '1', 10));
-        const N = Math.max(0, parseInt(card.querySelector('.in-ninos').value   || '0', 10));
-
-        const item = {
-          codigo,
-          titulo,
-          fecha: $fecha.value,
-          adultos: A,
-          ninos: N,
-          pa, pn,
-          img
-        };
-
-        if (typeof addToCart === 'function') {
-          addToCart(item);
-          // feedback corto
-          btnAdd.textContent = 'Añadido ✓';
-          setTimeout(()=>{ btnAdd.textContent = 'Añadir al carrito'; }, 900);
-        } else {
-          alert('No se pudo acceder al carrito.');
-        }
+      // seguridad si alguien envía el form (aunque ahora usamos carrito)
+      const form = card.querySelector('form.buy');
+      form?.addEventListener('submit', (e)=>{
+        if (!$fecha?.value) { e.preventDefault(); alert('Selecciona una fecha.'); return; }
+        if ($fecha.value < $fecha.min) { e.preventDefault(); $fecha.value = $fecha.min; alert('No puedes seleccionar una fecha pasada.'); return; }
+        calcCard(card);
       });
+
+      // ===== Añadir al carrito =====
+      const btnAdd = card.querySelector('.btn-add-cart, .btn-primary.btn-add-cart') || card.querySelector('button.btn-primary'); // por si variaron clases
+      if (btnAdd && btnAdd.textContent.toLowerCase().includes('añadir')) {
+        btnAdd.addEventListener('click', ()=>{
+          if (!$fecha?.value) { alert('Selecciona una fecha antes de añadir.'); return; }
+          if ($fecha.value < $fecha.min) { $fecha.value = $fecha.min; }
+
+          const item = {
+            codigo: card.dataset.id,
+            titulo: (card.querySelector('.title')?.textContent || card.dataset.id).trim(),
+            fecha:  $fecha.value,
+            adultos: Math.max(1, parseInt(card.querySelector('.in-adultos')?.value ?? '1', 10)),
+            ninos:   Math.max(0, parseInt(card.querySelector('.in-ninos')?.value ?? '0', 10)),
+            pa: Number(card.dataset.pa || 0),
+            pn: Number(card.dataset.pn || 0),
+            img: card.querySelector('.pic img')?.src || ''
+          };
+
+          // fallback en caso de que el script global no esté cargado aún
+          if (typeof addToCart === 'function') {
+            addToCart(item);
+          } else {
+            const KEY='cart_v1';
+            let list=[]; try{ list=JSON.parse(localStorage.getItem(KEY)||'[]'); }catch{}
+            list.push(item);
+            localStorage.setItem(KEY, JSON.stringify(list));
+            // si luego carga el global, que refresque el badge
+            if (typeof updateCartUI === 'function') updateCartUI();
+          }
+
+          // feedback sutil
+          const prev = btnAdd.textContent;
+          btnAdd.disabled = true;
+          btnAdd.textContent = 'Añadido ✓';
+          setTimeout(()=>{ btnAdd.textContent = prev; btnAdd.disabled = false; }, 900);
+        });
+      }
     });
 
-    // Si el usuario cambia la fecha, mantenerla válida y recalcular totales
-    $fecha.addEventListener('change', () => {
+    // al cambiar fecha, recalc
+    $fecha?.addEventListener('change', ()=>{
       if ($fecha.value < $fecha.min) $fecha.value = $fecha.min;
-      document.querySelectorAll('.card').forEach(card => calcCard(card));
+      document.querySelectorAll('.card[data-id]').forEach(calcCard);
     });
 
-    // Botón "Aplicar" sincroniza cantidades con todas las tarjetas
-    $apply.addEventListener('click', () => {
+    // Botón "Aplicar": sincroniza cantidades con todas las tarjetas
+    $apply?.addEventListener('click', ()=>{
       if ($fecha.value < $fecha.min) $fecha.value = $fecha.min;
-      document.querySelectorAll('.card').forEach(card => {
-        card.querySelector('.in-adultos').value = parseInt($adultSel.value, 10);
-        card.querySelector('.in-ninos').value   = parseInt($ninoSel.value, 10);
+      document.querySelectorAll('.card[data-id]').forEach(card=>{
+        const inA = card.querySelector('.in-adultos');
+        const inN = card.querySelector('.in-ninos');
+        if (inA) inA.value = parseInt($adultSel?.value ?? '2', 10);
+        if (inN) inN.value = parseInt($ninoSel?.value ?? '0', 10);
         calcCard(card);
       });
     });
