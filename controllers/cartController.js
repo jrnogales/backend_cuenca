@@ -1,44 +1,64 @@
+// controllers/cartController.js
 import { pool } from '../config/db.js';
 import { getPaqueteByCodigo } from '../models/Paquete.js';
 import {
   addOrUpdateItem,
   listCartByUser,
   removeItem,
+  clearCart,
   updateItem
 } from '../models/Carrito.js';
 
-/* ================== Utils ================== */
-
-/** Totales con IVA 15% */
+/* ============== Utils ============== */
 function calcTotals(items) {
   const subtotal = items.reduce((acc, it) => acc + Number(it.total_linea || 0), 0);
   const iva = +(subtotal * 0.15).toFixed(2);
   const total = +(subtotal + iva).toFixed(2);
   return { subtotal: +subtotal.toFixed(2), iva, total };
 }
+const day = x => String(x).slice(0, 10);
 
-/** Normaliza a YYYY-MM-DD */
-function day(x) {
-  return String(x).slice(0, 10);
-}
-
-/** Obtiene disponibilidad del día. Si no hay registro, asume 30 libres */
-async function getDisponibilidad(paqueteId, fecha) {
-  const sql = `
+/**
+ * Cupos disponibles REALES para este usuario en la fecha indicada:
+ * disponibles = totales - reservados - (lo que YA tiene en su carrito ese día)
+ */
+async function getDisponiblesParaUsuario(paqueteId, fecha, usuarioId) {
+  const q = `
     SELECT
-      COALESCE(cupos_totales, 30)::int   AS cupos_totales,
-      COALESCE(cupos_reservados, 0)::int AS cupos_reservados,
-      (COALESCE(cupos_totales, 30)::int - COALESCE(cupos_reservados, 0)::int) AS restantes
-    FROM disponibilidad
-    WHERE paquete_id = $1 AND fecha = $2::date
+      COALESCE(d.cupos_totales, 30)::int        AS totales,
+      COALESCE(d.cupos_reservados, 0)::int      AS reservados,
+      (
+        SELECT COALESCE(SUM(c.adultos + c.ninos), 0)::int
+        FROM carrito c
+        WHERE c.usuario_id = $3
+          AND c.paquete_id = $1
+          AND c.fecha = $2::date
+      )                                         AS en_carrito
+    FROM disponibilidad d
+    WHERE d.paquete_id = $1 AND d.fecha = $2::date
     LIMIT 1
   `;
-  const { rows } = await pool.query(sql, [paqueteId, day(fecha)]);
-  if (!rows.length) return { cupos_totales: 30, cupos_reservados: 0, restantes: 30 };
-  return rows[0];
+  const { rows } = await pool.query(q, [paqueteId, fecha, usuarioId]);
+
+  if (!rows.length) {
+    // No existe fila de disponibilidad: asumimos 30/0 y restamos lo del carrito del usuario
+    const { rows: enCar } = await pool.query(
+      `SELECT COALESCE(SUM(adultos + ninos),0)::int AS en_carrito
+         FROM carrito
+        WHERE usuario_id = $3 AND paquete_id = $1 AND fecha = $2::date`,
+      [paqueteId, fecha, usuarioId]
+    );
+    const enCarrito = Number(enCar[0]?.en_carrito || 0);
+    return Math.max(0, 30 - enCarrito);
+  }
+
+  const totales    = Number(rows[0].totales);
+  const reservados = Number(rows[0].reservados);
+  const enCarrito  = Number(rows[0].en_carrito);
+  return Math.max(0, totales - reservados - enCarrito);
 }
 
-/* ================== Controladores ================== */
+/* ============== Controladores ============== */
 
 export async function showCart(req, res) {
   const items = await listCartByUser(req.user.id);
@@ -46,10 +66,7 @@ export async function showCart(req, res) {
   res.render('cart', { title: 'Mi carrito', items, totals });
 }
 
-/**
- * POST /cart/add
- * Valida disponibilidad del día antes de agregar al carrito
- */
+/** POST /cart/add  {codigo, fecha, adultos, ninos} */
 export async function addToCart(req, res) {
   try {
     const userId = req.user?.id;
@@ -62,38 +79,35 @@ export async function addToCart(req, res) {
     }
 
     const { codigo, fecha, adultos, ninos } = req.body;
-    const ad = Math.max(1, parseInt(adultos ?? 1, 10));
-    const ni = Math.max(0, parseInt(ninos ?? 0, 10));
     if (!codigo || !fecha) {
       return res.status(400).json({ ok: false, message: 'Faltan datos: código y fecha.' });
     }
 
+    const ad = Math.max(1, parseInt(adultos ?? 1, 10));
+    const ni = Math.max(0, parseInt(ninos ?? 0, 10));
+
     const p = await getPaqueteByCodigo(codigo);
     if (!p) return res.status(404).json({ ok: false, message: 'Paquete no encontrado' });
 
-    const disp = await getDisponibilidad(p.id, fecha);
-    const solicitadosAhora = ad + ni;
+    // Cupos disponibles reales para este usuario/fecha
+    const disponibles = await getDisponiblesParaUsuario(p.id, fecha, userId);
+    const solicitados = ad + ni;
 
-    if (disp.restantes <= 0) {
-      return res.status(409).json({ ok: false, message: `No quedan cupos para ${day(fecha)}.` });
+    if (disponibles <= 0) {
+      return res.status(409).json({ ok: false, message: `No quedan cupos disponibles para ${day(fecha)}.` });
     }
-
-    if (solicitadosAhora > disp.restantes) {
+    if (solicitados > disponibles) {
       return res.status(409).json({
         ok: false,
-        message: `No hay cupos suficientes para ${day(fecha)}. Puedes agregar como máximo ${disp.restantes}.`,
-        restantes: disp.restantes
+        message: `No hay cupos suficientes para ${day(fecha)}. Puedes agregar como máximo ${disponibles} más.`
       });
     }
 
-    const totalLinea =
-      ad * Number(p.precio_adulto || 0) +
-      ni * Number(p.precio_nino   || 0);
-
+    const totalLinea = ad * Number(p.precio_adulto || 0) + ni * Number(p.precio_nino || 0);
     await addOrUpdateItem({
       usuarioId: userId,
       paqueteId: p.id,
-      fecha: day(fecha),
+      fecha,
       adultos: ad,
       ninos: ni,
       totalLinea
@@ -101,16 +115,13 @@ export async function addToCart(req, res) {
 
     const items = await listCartByUser(userId);
     const totals = calcTotals(items);
-    return res.json({ ok: true, items, totals });
-
+    res.json({ ok: true, items, totals });
   } catch (e) {
-    return res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: e.message });
   }
 }
 
-/**
- * POST /cart/update
- */
+/** POST /cart/update  {itemId, adultos, ninos} */
 export async function updateCartItem(req, res) {
   try {
     const userId = req.user?.id;
@@ -123,6 +134,7 @@ export async function updateCartItem(req, res) {
     }
 
     const { itemId, adultos, ninos } = req.body;
+
     const all = await listCartByUser(userId);
     const it = all.find(r => String(r.id) === String(itemId));
     if (!it) return res.status(404).json({ ok: false, message: 'Ítem no encontrado' });
@@ -132,27 +144,25 @@ export async function updateCartItem(req, res) {
     const newQty = ad + ni;
     const currentQty = Number(it.adultos || 0) + Number(it.ninos || 0);
 
-    const disp = await getDisponibilidad(it.paquete_id, it.fecha);
-    const maxPermitido = currentQty + Number(disp.restantes);
+    // Cupos que aún puedes aumentar adicionalmente
+    const disponibles = await getDisponiblesParaUsuario(it.paquete_id, it.fecha, userId);
+    const maxPermitido = currentQty + disponibles;
 
     if (newQty > maxPermitido) {
       return res.status(409).json({
         ok: false,
-        message: `No hay cupos suficientes para ${day(it.fecha)}. Puedes aumentar como máximo ${disp.restantes} más.`
+        message: `No hay cupos suficientes para ${day(it.fecha)}. Puedes aumentar como máximo ${disponibles} más.`
       });
     }
 
-    const totalLinea =
-      ad * Number(it.precio_adulto || 0) +
-      ni * Number(it.precio_nino   || 0);
-
+    const totalLinea = ad * Number(it.precio_adulto || 0) + ni * Number(it.precio_nino || 0);
     await updateItem(userId, itemId, { adultos: ad, ninos: ni, totalLinea });
+
     const items = await listCartByUser(userId);
     const totals = calcTotals(items);
-    return res.json({ ok: true, items, totals });
-
+    res.json({ ok: true, items, totals });
   } catch (e) {
-    return res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: e.message });
   }
 }
 
@@ -171,15 +181,14 @@ export async function removeFromCart(req, res) {
     await removeItem(userId, req.params.id);
     const items = await listCartByUser(userId);
     const totals = calcTotals(items);
-    return res.json({ ok: true, items, totals });
-
+    res.json({ ok: true, items, totals });
   } catch (e) {
-    return res.status(500).json({ ok: false, message: e.message });
+    res.status(500).json({ ok: false, message: e.message });
   }
 }
 
 /**
- * POST /cart/checkout
+ * POST /cart/checkout – procesa TODO el carrito con bloqueo de disponibilidad
  */
 export async function checkoutCart(req, res) {
   const client = await pool.connect();
@@ -202,13 +211,14 @@ export async function checkoutCart(req, res) {
     for (const it of items) {
       const { paquete_id, fecha, adultos, ninos } = it;
 
+      // Bloqueo/lectura de disponibilidad del día
       const dispQ = `
         SELECT id, cupos_totales, cupos_reservados
         FROM disponibilidad
         WHERE paquete_id = $1 AND fecha = $2::date
         FOR UPDATE
       `;
-      const dispRes = await client.query(dispQ, [paquete_id, day(fecha)]);
+      const dispRes = await client.query(dispQ, [paquete_id, fecha]);
 
       let dispId = null;
       let cuposTotales = 30;
@@ -223,7 +233,7 @@ export async function checkoutCart(req, res) {
           `INSERT INTO disponibilidad (paquete_id, fecha, cupos_totales, cupos_reservados)
            VALUES ($1,$2,30,0)
            RETURNING id`,
-          [paquete_id, day(fecha)]
+          [paquete_id, fecha]
         );
         dispId = ins.rows[0].id;
       }
@@ -233,22 +243,22 @@ export async function checkoutCart(req, res) {
         throw new Error(`Sin cupos para ${day(fecha)}.`);
       }
 
+      // Total con precios vigentes
       const pRes = await client.query('SELECT * FROM paquetes WHERE id=$1', [paquete_id]);
       const p = pRes.rows[0];
-      const total =
-        (Number(adultos) * Number(p.precio_adulto || 0)) +
-        (Number(ninos)   * Number(p.precio_nino   || 0));
+      const total = (Number(adultos) * Number(p.precio_adulto || 0)) +
+                    (Number(ninos)   * Number(p.precio_nino   || 0));
       totalLote += total;
 
       const bookingId =
         'RES-' + new Date().toISOString().slice(0,10).replace(/-/g,'') +
-        '-' + Math.random().toString(36).slice(2,6).toUpperCase();
+        '-'    + Math.random().toString(36).slice(2,6).toUpperCase();
 
       await client.query(
         `INSERT INTO reservas
-          (codigo_reserva, paquete_id, usuario_id, fecha_viaje, adultos, ninos, total_usd, origen)
+           (codigo_reserva, paquete_id, usuario_id, fecha_viaje, adultos, ninos, total_usd, origen)
          VALUES ($1,$2,$3,$4,$5,$6,$7,'CART')`,
-        [bookingId, paquete_id, usuarioId, day(fecha), adultos, ninos, total]
+        [bookingId, paquete_id, usuarioId, fecha, adultos, ninos, total]
       );
 
       await client.query(
@@ -274,7 +284,6 @@ export async function checkoutCart(req, res) {
       ninos: 0,
       total: totalConIva
     });
-
   } catch (e) {
     await client.query('ROLLBACK');
     res.status(400).send('No se pudo completar el checkout: ' + e.message);
