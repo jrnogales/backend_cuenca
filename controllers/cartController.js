@@ -9,7 +9,7 @@ import {
   updateItem
 } from '../models/Carrito.js';
 
-/** ================== Utils ================== */
+/* ================== Utils ================== */
 
 /** IVA 15% */
 function calcTotals(items) {
@@ -19,7 +19,7 @@ function calcTotals(items) {
   return { subtotal: +subtotal.toFixed(2), iva, total };
 }
 
-/** Lee disponibilidad diaria del paquete. Si no existe fila, asume 30 totales, 0 reservados. */
+/** Lee disponibilidad diaria. Si no existe fila, asume 30/0. */
 async function getDisponibilidad(paqueteId, fecha) {
   const q = `
     SELECT cupos_totales, cupos_reservados
@@ -36,7 +36,7 @@ async function getDisponibilidad(paqueteId, fecha) {
   return { cupos_totales: tot, cupos_reservados: res, restantes: tot - res };
 }
 
-/** Cantidad (adultos+niños) que el usuario YA tiene en el carrito para ese paquete/fecha */
+/** Cantidad (adultos+niños) YA existente en el carrito del user para ese paquete/fecha */
 async function getUserCartQtyForDate(userId, paqueteId, fecha) {
   const items = await listCartByUser(userId);
   const it = items.find(r => Number(r.paquete_id) === Number(paqueteId) && String(r.fecha) === String(fecha));
@@ -44,7 +44,7 @@ async function getUserCartQtyForDate(userId, paqueteId, fecha) {
   return Number(it.adultos || 0) + Number(it.ninos || 0);
 }
 
-/** ================== Controladores ================== */
+/* ================== Controladores ================== */
 
 export async function showCart(req, res) {
   const items = await listCartByUser(req.user.id);
@@ -54,17 +54,23 @@ export async function showCart(req, res) {
 
 /**
  * POST /cart/add  {codigo, fecha, adultos, ninos}
- * Valida cupos por fecha ANTES de agregar al carrito.
+ * Valida sesión y cupos por fecha ANTES de agregar al carrito.
  */
 export async function addToCart(req, res) {
   try {
     const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ ok: false, message: 'No autenticado' });
+    if (!userId) {
+      return res.status(401).json({
+        ok: false,
+        message: 'Debes iniciar sesión',
+        redirect: `/login?msg=${encodeURIComponent('Debes iniciar sesión')}&next=${encodeURIComponent('/cart')}`
+      });
+    }
 
     const { codigo, fecha, adultos, ninos } = req.body;
-
     const ad = Math.max(1, parseInt(adultos ?? 1, 10));
     const ni = Math.max(0, parseInt(ninos ?? 0, 10));
+
     if (!codigo || !fecha) {
       return res.status(400).json({ ok: false, message: 'Faltan datos: código y fecha.' });
     }
@@ -72,19 +78,16 @@ export async function addToCart(req, res) {
     const p = await getPaqueteByCodigo(codigo);
     if (!p) return res.status(404).json({ ok: false, message: 'Paquete no encontrado' });
 
-    // Disponibilidad del día
     const disp = await getDisponibilidad(p.id, fecha);
-
-    // Cuánto YA tiene el usuario en su carrito para ese paquete/fecha
     const yaEnCarrito = await getUserCartQtyForDate(userId, p.id, fecha);
-
     const solicitadosAhora = ad + ni;
-    // Límite: no permitir que (yaEnCarrito + solicitadosAhora) supere los restantes del día
-    if (yaEnCarrito + solicitadosAhora > disp.restantes) {
+    const restantesParaUsuario = Math.max(0, disp.restantes - yaEnCarrito);
+
+    if (solicitadosAhora > restantesParaUsuario) {
       return res.status(409).json({
         ok: false,
-        message: `Solo quedan ${disp.restantes - yaEnCarrito < 0 ? 0 : disp.restantes - yaEnCarrito} cupos disponibles para ${fecha}.`,
-        restantes: Math.max(0, disp.restantes - yaEnCarrito)
+        message: `Solo puedes añadir ${restantesParaUsuario} cupos más para el ${fecha}.`,
+        restantes: restantesParaUsuario
       });
     }
 
@@ -114,11 +117,16 @@ export async function addToCart(req, res) {
 export async function updateCartItem(req, res) {
   try {
     const userId = req.user?.id;
-    if (!userId) return res.status(401).json({ ok: false, message: 'No autenticado' });
+    if (!userId) {
+      return res.status(401).json({
+        ok: false,
+        message: 'Debes iniciar sesión',
+        redirect: `/login?msg=${encodeURIComponent('Debes iniciar sesión')}&next=${encodeURIComponent('/cart')}`
+      });
+    }
 
     const { itemId, adultos, ninos } = req.body;
 
-    // Traemos el carrito del user y ubicamos el ítem
     const all = await listCartByUser(userId);
     const it = all.find(r => String(r.id) === String(itemId));
     if (!it) return res.status(404).json({ ok: false, message: 'Ítem no encontrado' });
@@ -128,10 +136,10 @@ export async function updateCartItem(req, res) {
     const newQty = ad + ni;
     const currentQty = Number(it.adultos || 0) + Number(it.ninos || 0);
 
-    // Disponibilidad del día (restantes NO incluye lo del carrito)
+    // Disponibilidad del día (restantes NO incluye lo que ya tienes en carrito)
     const disp = await getDisponibilidad(it.paquete_id, it.fecha);
 
-    // Permitimos hasta currentQty + restantes
+    // Máximo permitido = lo que ya tienes + lo que queda
     const maxPermitido = currentQty + disp.restantes;
     if (newQty > maxPermitido) {
       const disponiblesParaAumentar = Math.max(0, disp.restantes);
@@ -155,8 +163,17 @@ export async function updateCartItem(req, res) {
 /** POST /cart/remove/:id */
 export async function removeFromCart(req, res) {
   try {
-    await removeItem(req.user.id, req.params.id);
-    const items = await listCartByUser(req.user.id);
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({
+        ok: false,
+        message: 'Debes iniciar sesión',
+        redirect: `/login?msg=${encodeURIComponent('Debes iniciar sesión')}&next=${encodeURIComponent('/cart')}`
+      });
+    }
+
+    await removeItem(userId, req.params.id);
+    const items = await listCartByUser(userId);
     const totals = calcTotals(items);
     res.json({ ok: true, items, totals });
   } catch (e) {
@@ -166,12 +183,20 @@ export async function removeFromCart(req, res) {
 
 /**
  * POST /cart/checkout – compra TODO el carrito
- * Usa la tabla disponibilidad (paquete_id, fecha, cupos_totales, cupos_reservados)
+ * Usa tabla disponibilidad (paquete_id, fecha, cupos_totales, cupos_reservados)
  */
 export async function checkoutCart(req, res) {
   const client = await pool.connect();
   try {
-    const usuarioId = req.user.id;
+    const usuarioId = req.user?.id;
+    if (!usuarioId) {
+      return res.status(401).json({
+        ok: false,
+        message: 'Debes iniciar sesión',
+        redirect: `/login?msg=${encodeURIComponent('Debes iniciar sesión')}&next=${encodeURIComponent('/cart')}`
+      });
+    }
+
     const items = await listCartByUser(usuarioId);
     if (!items.length) return res.status(400).send('Carrito vacío');
 
@@ -182,7 +207,7 @@ export async function checkoutCart(req, res) {
     for (const it of items) {
       const { paquete_id, fecha, adultos, ninos } = it;
 
-      // 1) Bloqueo/lectura de disponibilidad
+      // 1) Bloquear/leer disponibilidad
       const dispQ = `
         SELECT id, cupos_totales, cupos_reservados
         FROM disponibilidad
@@ -211,10 +236,10 @@ export async function checkoutCart(req, res) {
 
       const solicitados = Number(adultos) + Number(ninos);
       if (cuposReservados + solicitados > cuposTotales) {
-        throw new Error(`Sin cupos para ${it.titulo} el ${fecha}.`);
+        throw new Error(`Sin cupos para ${it.titulo || 'paquete'} el ${fecha}.`);
       }
 
-      // 2) Cálculo de total con precios vigentes
+      // 2) Cálculo total con precios vigentes
       const pRes = await client.query('SELECT * FROM paquetes WHERE id=$1', [paquete_id]);
       const p = pRes.rows[0];
       const total = (Number(adultos) * Number(p.precio_adulto || 0)) +
@@ -225,7 +250,7 @@ export async function checkoutCart(req, res) {
         'RES-' + new Date().toISOString().slice(0,10).replace(/-/g,'') +
         '-'    + Math.random().toString(36).slice(2,6).toUpperCase();
 
-      // 3) Inserta reserva
+      // 3) Insertar reserva
       await client.query(
         `INSERT INTO reservas
           (codigo_reserva, paquete_id, usuario_id, fecha_viaje, adultos, ninos, total_usd, origen)
@@ -233,7 +258,7 @@ export async function checkoutCart(req, res) {
         [bookingId, paquete_id, usuarioId, fecha, adultos, ninos, total]
       );
 
-      // 4) Actualiza cupos_reservados
+      // 4) Actualizar cupos_reservados
       await client.query(
         `UPDATE disponibilidad
            SET cupos_reservados = cupos_reservados + $2
@@ -242,7 +267,7 @@ export async function checkoutCart(req, res) {
       );
     }
 
-    // 5) Vacía carrito
+    // 5) Vaciar carrito del usuario
     await client.query(`DELETE FROM carrito WHERE usuario_id = $1`, [usuarioId]);
     await client.query('COMMIT');
 

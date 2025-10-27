@@ -99,6 +99,47 @@
 
 <script>
   (function () {
+    // ===== Helpers globales para badge/mini-carrito (si existen en el layout) =====
+    window.updateCartUI = function (data) {
+      const count = Array.isArray(data?.items) ? data.items.reduce((n, it) => n + Number(it.adultos || 0) + Number(it.ninos || 0), 0) : 0;
+      const badge = document.querySelector('[data-cart-count]');
+      if (badge) {
+        badge.textContent = count;
+        badge.style.display = count > 0 ? 'inline-block' : 'none';
+      }
+    };
+
+    window.renderMiniCart = function (data) {
+      const box = document.getElementById('mini-cart');
+      if (!box) return;
+      const items = Array.isArray(data?.items) ? data.items : [];
+      const totals = data?.totals || { subtotal: 0, iva: 0, total: 0 };
+
+      if (!items.length) {
+        box.innerHTML = '<div class="muted">Tu carrito está vacío.</div>';
+        return;
+      }
+      box.innerHTML = `
+        <ul class="mini-list">
+          ${items.map(it => `
+            <li>
+              <div>
+                <b>${it.titulo || it.codigo}</b>
+                <div class="muted">${it.fecha} · A:${it.adultos} N:${it.ninos}</div>
+              </div>
+              <div>$${Number(it.total_linea || 0).toFixed(2)}</div>
+            </li>
+          `).join('')}
+        </ul>
+        <div class="mini-totals">
+          <div>Subtotal: $${Number(totals.subtotal||0).toFixed(2)}</div>
+          <div>IVA (15%): $${Number(totals.iva||0).toFixed(2)}</div>
+          <div><b>Total: $${Number(totals.total||0).toFixed(2)}</b></div>
+        </div>
+        <a href="/cart" class="btn-primary" style="display:block;text-align:center;margin-top:8px">Ir al carrito</a>
+      `;
+    };
+
     // ===== util fecha hoy en local YYYY-MM-DD =====
     function todayLocalISO() {
       const d = new Date();
@@ -143,8 +184,9 @@
       });
       // No autenticado
       if (res.status === 401) {
-        const next = encodeURIComponent(location.pathname);
-        location.href = '/login?msg=Debes iniciar sesión&next=' + next;
+        const data = await res.json().catch(()=>null);
+        const redirect = data?.redirect || ('/login?msg=Debes%20iniciar%20sesion&next=' + encodeURIComponent('/cart'));
+        location.href = redirect;
         return null;
       }
       // Conflicto de cupos
@@ -200,6 +242,7 @@
           // actualiza badge / mini-carrito si existen
           if (typeof window.updateCartUI === 'function') window.updateCartUI(data);
           if (typeof window.renderMiniCart === 'function') window.renderMiniCart(data);
+
           // feedback sutil
           btnAdd.textContent = 'Añadido ✓';
           btnAdd.disabled = true;
