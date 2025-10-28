@@ -14,12 +14,12 @@ import authRoutes from './routes/auth.js';
 import checkoutRoutes from './routes/checkout.js';
 import reservasRoutes from './routes/reservas.js';
 import cartRoutes from './routes/cart.js';
-import apiRoutes from './routes/api.js'; // <- tu router de API
+import apiRoutes from './routes/api.js';
+import adminRoutes from './routes/admin.js'; // <-- panel admin
 
 // Middlewares/servicios
 import { attachUser } from './middleware/auth.js';
 import { attachSoap } from './soap/server.js';
-import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -35,7 +35,6 @@ app.use(cookieParser());
 /* ---------- Archivos estáticos ---------- */
 app.use('/img', express.static(path.join(__dirname, 'public/img')));
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
-// Si más adelante sirves JS propio, puedes habilitar:
 // app.use('/js', express.static(path.join(__dirname, 'public/js')));
 
 /* ---------- Motor de vistas (EJS) con layout ---------- */
@@ -82,15 +81,14 @@ app.use((req, res, next) => {
 });
 
 /* ---------- Rutas de API (JSON) ---------- */
-// IMPORTANTE: monta tu API bajo /api
 app.use('/api', apiRoutes);
 
-// 404 JSON para /api (evita HTML en caso de ruta inexistente)
+// 404 JSON para /api
 app.use('/api', (req, res) => {
   res.status(404).json({ ok: false, error: 'Ruta de API no encontrada' });
 });
 
-// Manejador de errores JSON para /api
+// Manejador de errores JSON para /api (middleware de 4 args)
 app.use('/api', (err, req, res, next) => {
   console.error('❌ Error en /api:', err);
   res
@@ -104,11 +102,11 @@ app.use('/', authRoutes);
 app.use('/checkout', checkoutRoutes);
 app.use('/', reservasRoutes); // /mis-reservas, /reservas/:codigo/cancelar, etc.
 app.use('/', cartRoutes);
+app.use('/admin', adminRoutes); // <-- MONTA admin bajo /admin
 app.use(debugRoutes);
 
 /* ---------- SOAP (para el BUS) ---------- */
 attachSoap(app);
-app.use('/', adminRoutes);
 
 /* ---------- Arranque ---------- */
 const port = process.env.PORT || 3000;
