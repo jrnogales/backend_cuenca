@@ -4,14 +4,14 @@ import bcrypt from 'bcryptjs';
 
 /**
  * Crea un usuario. Hace hash del password.
- * Campos nuevos: apellido, cedula (varchar(10))
+ * Deja que el DEFAULT 'user' se aplique a rol automáticamente.
  */
 export async function createUser({ nombre, apellido, cedula, email, telefono, password }) {
   const hash = await bcrypt.hash(password, 10);
   const q = `
     INSERT INTO usuarios (nombre, apellido, cedula, email, telefono, password_hash)
     VALUES ($1,$2,$3,$4,$5,$6)
-    RETURNING id, nombre, apellido, cedula, email, telefono
+    RETURNING id, nombre, apellido, cedula, email, telefono, rol
   `;
   const vals = [
     nombre,
@@ -25,8 +25,14 @@ export async function createUser({ nombre, apellido, cedula, email, telefono, pa
   return rows[0];
 }
 
-/** Busca por email. Devuelve * (incluye password_hash para login) */
+/** Busca por email: trae rol explícitamente */
 export async function findUserByEmail(email) {
-  const { rows } = await pool.query('SELECT * FROM usuarios WHERE email=$1 LIMIT 1', [email]);
+  const { rows } = await pool.query(
+    `SELECT id, nombre, apellido, cedula, email, telefono, password_hash, rol
+       FROM usuarios
+      WHERE email=$1
+      LIMIT 1`,
+    [email]
+  );
   return rows[0];
 }
