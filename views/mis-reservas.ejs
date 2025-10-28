@@ -17,8 +17,13 @@
       // Usamos 'var' para evitar warnings del parser de algunas extensiones
       var ahoraMs = Date.now();
       reservas.forEach(function(r) {
-        // Fuerza medianoche local para evitar TZ warnings
-        var inicio = new Date(String(r.fecha_viaje || '') + 'T00:00:00');
+        // ✅ Medianoche local: evita que el parseo 'YYYY-MM-DD' se interprete como UTC
+        var parts = String(r.fecha_viaje || '').split('-');         // ['2025','10','30']
+        var y = parseInt(parts[0] || '0', 10);
+        var m = parseInt(parts[1] || '1', 10) - 1;                  // 0-based
+        var d = parseInt(parts[2] || '1', 10);
+        var inicio = new Date(y, m, d, 0, 0, 0, 0);                  // <-- LOCAL
+
         var diffMs = inicio.getTime() - ahoraMs;
         var estado = r.estado || 'CONFIRMADA';
         var dentroVentana = diffMs >= (8*60*60*1000);
