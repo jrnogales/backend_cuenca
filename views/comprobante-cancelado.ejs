@@ -1,13 +1,19 @@
 <% layout('partials/layout') %>
 
+<%
+  const _codigo  = String(codigo || '');
+  const _mensaje = String(mensaje || 'Tu reserva fue cancelada y los cupos fueron liberados.');
+%>
+
 <div class="card" style="max-width:640px;margin:auto;text-align:center">
   <h2>❌ Reserva cancelada</h2>
 
-  <p><b>Código de reserva:</b> <span style="color:#1b7af3"><%= codigo %></span></p>
+  <p><b>Código de reserva:</b> <span style="color:#1b7af3"><%= _codigo %></span></p>
 
-  <p style="margin:16px 0"><%= mensaje %></p>
+  <p style="margin:16px 0"><%= _mensaje %></p>
 
-  <div style="margin-top:24px">
+  <div style="margin-top:24px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
     <a href="/" class="btn">← Volver al inicio</a>
+    <a href="/mis-reservas" class="btn">Ver mis reservas</a>
   </div>
 </div>
