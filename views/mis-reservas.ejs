@@ -14,19 +14,35 @@
 <% } else { %>
   <div class="cards">
     <%
-      // Usamos 'var' para evitar warnings del parser de algunas extensiones
       var ahoraMs = Date.now();
-      reservas.forEach(function(r) {
-        // ✅ Medianoche local: evita que el parseo 'YYYY-MM-DD' se interprete como UTC
-        var parts = String(r.fecha_viaje || '').split('-');         // ['2025','10','30']
-        var y = parseInt(parts[0] || '0', 10);
-        var m = parseInt(parts[1] || '1', 10) - 1;                  // 0-based
-        var d = parseInt(parts[2] || '1', 10);
-        var inicio = new Date(y, m, d, 0, 0, 0, 0);                  // <-- LOCAL
 
+      // 🔒 Parser de fecha robusto a cualquier formato (string YYYY-MM-DD, ISO, o Date)
+      function inicioLocalDeFecha(fv) {
+        if (!fv) return new Date(0); // pasado remoto -> no cancelable
+        // 1) Si es string 'YYYY-MM-DD' exacto
+        var s = String(fv);
+        var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if (m) {
+          var y = parseInt(m[1],10), mo = parseInt(m[2],10)-1, d = parseInt(m[3],10);
+          return new Date(y, mo, d, 0, 0, 0, 0); // LOCAL
+        }
+        // 2) Si es Date o ISO, leer componente UTC y construir LOCAL a medianoche
+        var dt = new Date(fv);
+        if (!isNaN(dt.getTime())) {
+          var y2 = dt.getUTCFullYear ? dt.getUTCFullYear() : dt.getFullYear();
+          var mo2 = dt.getUTCMonth   ? dt.getUTCMonth()    : dt.getMonth();
+          var d2  = dt.getUTCDate    ? dt.getUTCDate()     : dt.getDate();
+          return new Date(y2, mo2, d2, 0, 0, 0, 0); // LOCAL
+        }
+        return new Date(0);
+      }
+
+      reservas.forEach(function(r) {
+        var inicio = inicioLocalDeFecha(r.fecha_viaje);   // ✅ medianoche LOCAL del día de viaje
         var diffMs = inicio.getTime() - ahoraMs;
+
         var estado = r.estado || 'CONFIRMADA';
-        var dentroVentana = diffMs >= (8*60*60*1000);
+        var dentroVentana = diffMs >= (8*60*60*1000);     // ≥ 8 horas
         var cancelable = (estado === 'CONFIRMADA') && dentroVentana;
         var badgeClass = (estado === 'CANCELADA') ? 'resv-badge resv-cancel' : 'resv-badge resv-ok';
     %>
