@@ -19,6 +19,7 @@ import apiRoutes from './routes/api.js'; // <- tu router de API
 // Middlewares/servicios
 import { attachUser } from './middleware/auth.js';
 import { attachSoap } from './soap/server.js';
+import adminRoutes from './routes/admin.js';
 
 dotenv.config();
 
@@ -107,6 +108,7 @@ app.use(debugRoutes);
 
 /* ---------- SOAP (para el BUS) ---------- */
 attachSoap(app);
+app.use('/', adminRoutes);
 
 /* ---------- Arranque ---------- */
 const port = process.env.PORT || 3000;
