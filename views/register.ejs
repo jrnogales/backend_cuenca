@@ -15,8 +15,18 @@
     <input type="text" name="apellido" required value="<%= apellido || '' %>">
 
     <label>Cédula</label>
-    <input type="text" name="cedula" required maxlength="10" minlength="10"
-           pattern="\\d{10}" placeholder="10 dígitos" value="<%= cedula || '' %>">
+    <input
+      type="text"
+      name="cedula"
+      required
+      inputmode="numeric"
+      autocomplete="off"
+      minlength="10"
+      maxlength="10"
+      pattern="[0-9]{10}"
+      placeholder="10 dígitos"
+      value="<%= cedula || '' %>"
+    >
     <small class="muted">Debe tener 10 dígitos válidos (Ecuador).</small>
 
     <label>Email</label>
@@ -33,9 +43,9 @@
 </div>
 
 <script>
-// Validación de cédula ecuatoriana
+// Validación de cédula ecuatoriana (en cliente)
 function validarCedulaEc(cedula){
-  if(!/^\d{10}$/.test(cedula)) return false;
+  if(!/^[0-9]{10}$/.test(cedula)) return false;
   const prov = parseInt(cedula.slice(0,2),10);
   if(prov < 1 || prov > 24) return false;
   const d = cedula.split('').map(n=>parseInt(n,10));
