@@ -1,10 +1,60 @@
 <% layout('partials/layout') %>
+
 <h2>Crear cuenta</h2>
-<form method="post" action="/register" class="card" style="max-width:540px">
-  <label>Nombre</label><input name="nombre" required>
-  <label>Email</label><input type="email" name="email" required>
-  <label>Teléfono</label><input name="telefono" required>
-  <label>Contraseña</label><input type="password" name="password" required>
-  <button class="btn" type="submit">Registrar</button>
-  <% if(typeof error!=='undefined'){ %><p style="color:#b00"><%= error %></p><% } %>
-</form>
+
+<% if (typeof error === 'string' && error) { %>
+  <div class="notice error"><%= error %></div>
+<% } %>
+
+<div class="card" style="max-width:640px;margin:auto;">
+  <form method="POST" action="/register" id="f-register">
+    <label>Nombre</label>
+    <input type="text" name="nombre" required value="<%= nombre || '' %>">
+
+    <label>Apellido</label>
+    <input type="text" name="apellido" required value="<%= apellido || '' %>">
+
+    <label>Cédula</label>
+    <input type="text" name="cedula" required maxlength="10" minlength="10"
+           pattern="\\d{10}" placeholder="10 dígitos" value="<%= cedula || '' %>">
+    <small class="muted">Debe tener 10 dígitos válidos (Ecuador).</small>
+
+    <label>Email</label>
+    <input type="email" name="email" required value="<%= email || '' %>">
+
+    <label>Teléfono</label>
+    <input type="tel" name="telefono" inputmode="tel" value="<%= telefono || '' %>">
+
+    <label>Contraseña</label>
+    <input type="password" name="password" required minlength="6">
+
+    <button type="submit" class="btn" style="width:100%;margin-top:12px;">Registrar</button>
+  </form>
+</div>
+
+<script>
+// Validación de cédula ecuatoriana
+function validarCedulaEc(cedula){
+  if(!/^\d{10}$/.test(cedula)) return false;
+  const prov = parseInt(cedula.slice(0,2),10);
+  if(prov < 1 || prov > 24) return false;
+  const d = cedula.split('').map(n=>parseInt(n,10));
+  let suma = 0;
+  for (let i=0;i<9;i++){
+    let v = d[i];
+    if (i % 2 === 0) { v *= 2; if (v > 9) v -= 9; }
+    suma += v;
+  }
+  const ver = (10 - (suma % 10)) % 10;
+  return ver === d[9];
+}
+
+document.getElementById('f-register')?.addEventListener('submit', (e)=>{
+  const ci = e.target.cedula?.value?.trim() ?? '';
+  if(!validarCedulaEc(ci)){
+    e.preventDefault();
+    alert('La cédula ingresada no es válida. Verifica los 10 dígitos.');
+    e.target.cedula?.focus();
+  }
+});
+</script>
