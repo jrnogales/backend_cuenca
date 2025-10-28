@@ -114,8 +114,8 @@
       <%- body %>
     </main>
 
-    <!-- ====== JS del layout / carrito global ====== -->
-  <script>
+   <!-- ====== JS del layout / carrito global ====== -->
+<script>
   const CART_KEY = 'ct_cart';
 
   // API mínima global
@@ -224,6 +224,7 @@
             const r = await fetch('/cart/add', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              credentials: 'same-origin',                 // ✅ asegura envío de cookies
               body: JSON.stringify({
                 codigo: it.codigo,
                 fecha: it.fecha,
@@ -232,19 +233,23 @@
               })
             });
 
+            const ct = r.headers.get('content-type') || '';
+
             // No logueado → backend responde 401 con redirect a /login
             if (r.status === 401) {
               let data = {};
-              try { data = await r.json(); } catch {}
-              const next = (data.redirect || '/login?next=/cart');
+              if (ct.includes('application/json')) { try { data = await r.json(); } catch {} }
               alert('Debes iniciar sesión para pagar.');
-              window.location.href = next;
+              window.location.href = (data.redirect || '/login?next=/cart');
               return;
             }
 
-            // Cualquier otro error (stock/validación/etc.)
+            // ❗ Ruta inexistente o HTML (p.ej. "Cannot POST /cart/add")
             if (!r.ok) {
-              const msg = await r.text().catch(()=> 'Error al agregar al carrito en el servidor.');
+              const text = await r.text().catch(()=>'');
+              const msg = ct.includes('application/json')
+                          ? (JSON.parse(text||'{}').error || 'Error al agregar al carrito en el servidor.')
+                          : (text.includes('Cannot POST') ? 'La ruta /cart/add no está disponible en el servidor.' : (text || 'Error al agregar al carrito en el servidor.'));
               alert(msg);
               pay.disabled = false;
               pay.textContent = prevText;
@@ -256,7 +261,11 @@
           clearCart();
 
           // 3) Ejecuta checkout contra el servidor (lee carrito en BD)
-          const resp = await fetch('/cart/checkout', { method: 'POST' });
+          const resp = await fetch('/cart/checkout', {
+            method: 'POST',
+            credentials: 'same-origin'                   // ✅ cookies
+          });
+          const ct2 = resp.headers.get('content-type') || '';
 
           if (resp.ok) {
             const html = await resp.text();
@@ -266,8 +275,11 @@
             alert('Debes iniciar sesión para pagar.');
             window.location.href = '/login?next=/cart';
           } else {
-            const t = await resp.text().catch(()=> 'No se pudo completar el checkout.');
-            alert(t);
+            const text = await resp.text().catch(()=> '');
+            const msg = ct2.includes('application/json')
+              ? (JSON.parse(text||'{}').error || 'No se pudo completar el checkout.')
+              : (text || 'No se pudo completar el checkout.');
+            alert(msg);
             pay.disabled = false;
             pay.textContent = prevText;
           }
@@ -284,6 +296,7 @@
     document.addEventListener('ct:cart-updated', () => updateCartUI());
   })();
 </script>
+
 
   </body>
 </html>
