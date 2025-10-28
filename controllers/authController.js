@@ -3,35 +3,16 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { createUser, findUserByEmail } from '../models/Usuario.js';
 
-/** GET /register */
-export async function showRegister(req, res) {
-  res.render('register', {
-    title: 'Crear cuenta',
-    error: null,
-    // valores para “sticky form”
-    nombre: '',
-    apellido: '',
-    cedula: '',
-    email: '',
-    telefono: ''
-  });
-}
+/** ============== Helpers ============== */
 
-/** GET /login  (acepta ?msg= y ?next=) */
-export async function showLogin(req, res) {
-  res.render('login', {
-    title: 'Ingresar',
-    query: { msg: req.query.msg || '', next: req.query.next || '/' },
-    error: null,
-  });
-}
-
-/** Helper: validar cédula ecuatoriana (módulo 10) */
+// Valida cédula ecuatoriana (módulo 10)
 function validarCedulaEc(cedula) {
   const s = String(cedula || '').trim();
   if (!/^\d{10}$/.test(s)) return false;
+
   const prov = parseInt(s.slice(0, 2), 10);
   if (prov < 1 || prov > 24) return false;
+
   const d = s.split('').map(n => parseInt(n, 10));
   let suma = 0;
   for (let i = 0; i < 9; i++) {
@@ -42,6 +23,46 @@ function validarCedulaEc(cedula) {
   const ver = (10 - (suma % 10)) % 10;
   return ver === d[9];
 }
+
+// Permite solo rutas internas seguras para next
+function sanitizeNext(n) {
+  if (!n || typeof n !== 'string') return '';
+  const s = n.trim();
+  if (!s.startsWith('/')) return '';
+  if (s.startsWith('//')) return '';
+  if (s.startsWith('/http') || s.startsWith('/https')) return '';
+  return s;
+}
+
+/** ============== Vistas ============== */
+
+/** GET /register */
+export async function showRegister(req, res) {
+  res.render('register', {
+    title: 'Crear cuenta',
+    error: null,
+    // sticky form
+    nombre: '',
+    apellido: '',
+    cedula: '',
+    email: '',
+    telefono: ''
+  });
+}
+
+/** GET /login  (acepta ?msg= y ?next=) */
+export async function showLogin(req, res) {
+  const msg  = req.query.msg || '';
+  const next = sanitizeNext(req.query.next || '');
+  res.render('login', {
+    title: 'Ingresar',
+    error: msg || null,
+    email: '',
+    next
+  });
+}
+
+/** ============== Acciones ============== */
 
 /** POST /register */
 export async function register(req, res) {
@@ -69,7 +90,7 @@ export async function register(req, res) {
       return renderError('Ya existe un usuario con ese email.');
     }
 
-    // Tu modelo createUser ya hace el hash internamente
+    // createUser debe manejar el hash internamente (como ya lo tienes)
     await createUser({ nombre, apellido, cedula, email, telefono, password });
 
     return res.redirect('/login?msg=Cuenta creada. Inicia sesión.');
@@ -85,14 +106,16 @@ export async function register(req, res) {
 /** POST /login */
 export async function login(req, res) {
   try {
-    const { email, password, next } = req.body;
+    const { email, password } = req.body;
+    const nextFromBody = sanitizeNext(req.body.next || '');
 
     const u = await findUserByEmail(email);
     if (!u) {
       return res.render('login', {
         title: 'Ingresar',
         error: 'Usuario/contraseña inválidos.',
-        query: { msg: '', next: next || '/' },
+        email,
+        next: nextFromBody
       });
     }
 
@@ -101,29 +124,32 @@ export async function login(req, res) {
       return res.render('login', {
         title: 'Ingresar',
         error: 'Usuario/contraseña inválidos.',
-        query: { msg: '', next: next || '/' },
+        email,
+        next: nextFromBody
       });
     }
 
-    const token = jwt.sign(
-      {
-        id: u.id,
-        nombre: u.nombre,
-        apellido: u.apellido || '',
-        cedula: u.cedula || '',
-        email: u.email
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: '2d' }
-    );
+    const payload = {
+      id: u.id,
+      nombre: u.nombre,
+      apellido: u.apellido || '',
+      cedula: u.cedula || '',
+      email: u.email,
+      rol: u.rol || 'user'
+    };
 
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, { httpOnly: true, sameSite: 'lax' });
-    return res.redirect(next || '/');
+
+    const fallback = (payload.rol === 'admin') ? '/admin' : '/mis-reservas';
+    const dest = nextFromBody || fallback;
+    return res.redirect(dest);
   } catch (e) {
     return res.render('login', {
       title: 'Ingresar',
       error: 'Error al iniciar sesión: ' + e.message,
-      query: { msg: '', next: '/' },
+      email: req.body?.email || '',
+      next: sanitizeNext(req.body?.next || '')
     });
   }
 }
