@@ -1,0 +1,47 @@
+<% layout('partials/layout') %>
+
+<h2>📅 Reservas</h2>
+
+<style>
+  .tbl{width:100%;border-collapse:separate;border-spacing:0 8px}
+  .tbl th{font-weight:600;color:#374151;text-align:left;padding:8px}
+  .tbl td{background:#fff;border:1px solid #e5e7eb;border-left:none;border-right:none;padding:10px}
+  .badge{padding:2px 8px;border-radius:999px;font-size:12px;color:#fff}
+  .ok{background:#10b981}.cancel{background:#ef4444}
+</style>
+
+<% if (!reservas || reservas.length === 0) { %>
+  <div class="notice">No hay reservas registradas.</div>
+<% } else { %>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Código</th>
+        <th>Paquete</th>
+        <th>Usuario</th>
+        <th>Fecha viaje</th>
+        <th>Adultos</th>
+        <th>Niños</th>
+        <th>Total</th>
+        <th>Estado</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% reservas.forEach(r => { %>
+        <tr>
+          <td><%= r.codigo_reserva %></td>
+          <td><%= r.titulo || r.paquete_titulo %></td>
+          <td><%= r.usuario_nombre || r.usuario_email || r.email %></td>
+          <td><%= r.fecha_viaje %></td>
+          <td><%= r.adultos %></td>
+          <td><%= r.ninos %></td>
+          <td>$<%= Number(r.total_usd||0).toFixed(2) %></td>
+          <td>
+            <% const est = (r.estado || 'CONFIRMADA'); %>
+            <span class="badge <%= est==='CANCELADA' ? 'cancel' : 'ok' %>"><%= est %></span>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
