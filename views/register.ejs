@@ -43,27 +43,33 @@
 </div>
 
 <script>
-// Validación de cédula ecuatoriana (en cliente)
-function validarCedulaEc(cedula){
-  if(!/^[0-9]{10}$/.test(cedula)) return false;
-  const prov = parseInt(cedula.slice(0,2),10);
-  if(prov < 1 || prov > 24) return false;
-  const d = cedula.split('').map(n=>parseInt(n,10));
+// Validación de cédula ecuatoriana (formato oficial)
+function validarCedulaEc(cedula) {
+  if (!/^\d{10}$/.test(cedula)) return false;
+
+  const provincia = parseInt(cedula.substring(0, 2), 10);
+  const tercer = parseInt(cedula[2], 10);
+  if (provincia < 1 || provincia > 24 || tercer >= 6) return false;
+
+  const coef = [2,1,2,1,2,1,2,1,2];
+  const digitos = cedula.split('').map(Number);
   let suma = 0;
-  for (let i=0;i<9;i++){
-    let v = d[i];
-    if (i % 2 === 0) { v *= 2; if (v > 9) v -= 9; }
-    suma += v;
+
+  for (let i = 0; i < 9; i++) {
+    let valor = digitos[i] * coef[i];
+    if (valor >= 10) valor -= 9;
+    suma += valor;
   }
-  const ver = (10 - (suma % 10)) % 10;
-  return ver === d[9];
+
+  const verificador = (10 - (suma % 10)) % 10;
+  return verificador === digitos[9];
 }
 
-document.getElementById('f-register')?.addEventListener('submit', (e)=>{
+document.getElementById('f-register')?.addEventListener('submit', (e) => {
   const ci = e.target.cedula?.value?.trim() ?? '';
-  if(!validarCedulaEc(ci)){
+  if (!validarCedulaEc(ci)) {
     e.preventDefault();
-    alert('La cédula ingresada no es válida. Verifica los 10 dígitos.');
+    alert('La cédula ingresada no es válida. Verifica los 10 dígitos correctamente.');
     e.target.cedula?.focus();
   }
 });
