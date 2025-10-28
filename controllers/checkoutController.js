@@ -1,6 +1,7 @@
 // controllers/checkoutController.js
 import { pool } from '../config/db.js';
 import { getPaqueteByCodigo } from '../models/Paquete.js';
+import { crearFactura, anularFacturaPorCodigoReserva } from '../models/Factura.js'; // ← NUEVO
 
 /** Muestra detalle/checkout (igual que antes) */
 export async function showCheckout(req, res) {
@@ -105,15 +106,25 @@ export async function crearReserva(req, res) {
 
     const usuarioId = req.user?.id ?? null;
 
-    // Inserta reserva
+    // Inserta reserva (devuelve también el id para facturación)
     const insert = `
       INSERT INTO reservas
         (codigo_reserva, paquete_id, usuario_id, fecha_viaje, adultos, ninos, total_usd, origen)
       VALUES
         ($1,$2,$3,$4,$5,$6,$7,'WEB')
-      RETURNING codigo_reserva`;
+      RETURNING id, codigo_reserva`;
     const vals = [code, paquete.id, usuarioId, fecha, ad, ni, total];
     const { rows: resRows } = await client.query(insert, vals);
+
+    // >>> FACTURA (dentro de la MISMA transacción)
+    const lineas = [];
+    if (ad > 0) lineas.push({ descripcion: `${paquete.titulo} - Adultos`, cantidad: ad, precio_unitario: Number(paquete.precio_adulto || 0) });
+    if (ni > 0) lineas.push({ descripcion: `${paquete.titulo} - Niños`,   cantidad: ni, precio_unitario: Number(paquete.precio_nino   || 0) });
+    await crearFactura(client, {
+      reservaId: resRows[0].id,
+      metodoPago: 'WEB',
+      lineas
+    });
 
     // Incrementa reservados en disponibilidad
     await client.query(
@@ -150,6 +161,9 @@ export async function cancelarReserva(req, res) {
     const { codigo } = req.params;
     if (!codigo) return res.status(400).send('Falta el código de reserva.');
     await pool.query('SELECT cancelar_reserva($1)', [codigo]);
+
+    // >>> Anula la(s) factura(s) asociada(s) a esa reserva
+    await anularFacturaPorCodigoReserva(null, codigo);
 
     return res.render('comprobante-cancelado', {
       title: 'Reserva cancelada',
