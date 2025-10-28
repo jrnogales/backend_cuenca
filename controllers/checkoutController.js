@@ -1,7 +1,7 @@
 // controllers/checkoutController.js
 import { pool } from '../config/db.js';
 import { getPaqueteByCodigo } from '../models/Paquete.js';
-import { crearFactura, anularFacturaPorCodigoReserva } from '../models/Factura.js'; // ← NUEVO
+import { crearFactura, anularFacturaPorCodigoReserva } from '../models/Factura.js'; // (import ok aunque no lo usemos aquí)
 
 /** Muestra detalle/checkout (igual que antes) */
 export async function showCheckout(req, res) {
@@ -155,23 +155,50 @@ export async function crearReserva(req, res) {
   }
 }
 
-/** Cancela una reserva (usa función SQL que libera cupos por fecha) */
+/** Cancela una reserva: ANULA FACTURAS primero y luego repone cupos (todo en TX) */
 export async function cancelarReserva(req, res) {
+  const client = await pool.connect();
   try {
     const { codigo } = req.params;
     if (!codigo) return res.status(400).send('Falta el código de reserva.');
-    await pool.query('SELECT cancelar_reserva($1)', [codigo]);
 
-    // >>> Anula la(s) factura(s) asociada(s) a esa reserva
-    await anularFacturaPorCodigoReserva(null, codigo);
+    await client.query('BEGIN');
+
+    // 1) Obtener y bloquear la reserva por código (para que exista durante la anulación)
+    const rRes = await client.query(
+      `SELECT id FROM reservas WHERE codigo_reserva = $1 FOR UPDATE`,
+      [codigo]
+    );
+    if (rRes.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).send('Reserva no encontrada.');
+    }
+    const reservaId = rRes.rows[0].id;
+
+    // 2) Anular facturas EMITIDAS ligadas a esa reserva
+    await client.query(
+      `UPDATE facturas
+          SET estado = 'ANULADA'
+        WHERE reserva_id = $1
+          AND estado = 'EMITIDA'`,
+      [reservaId]
+    );
+
+    // 3) Cancelar la reserva (tu función SQL repone cupos por fecha)
+    await client.query(`SELECT cancelar_reserva($1)`, [codigo]);
+
+    await client.query('COMMIT');
 
     return res.render('comprobante-cancelado', {
       title: 'Reserva cancelada',
       codigo,
-      mensaje: 'Tu reserva fue cancelada y los cupos fueron liberados.'
+      mensaje: 'Tu reserva fue cancelada, la(s) factura(s) anulada(s) y los cupos repuestos.'
     });
   } catch (err) {
+    try { await client.query('ROLLBACK'); } catch {}
     console.error(err);
     return res.status(500).send('Error al cancelar la reserva: ' + err.message);
+  } finally {
+    client.release();
   }
 }
