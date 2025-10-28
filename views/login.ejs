@@ -1,14 +1,18 @@
 <% layout('partials/layout') %>
 
+<% // Default seguro para evitar ReferenceError en EJS
+   const _q = (typeof query !== 'undefined' && query) ? query : {};
+%>
+
 <div class="card" style="max-width:480px">
   <h2>Ingresar</h2>
 
-  <% if (query?.msg) { %>
-    <div class="notice error"><%= query.msg %></div>
+  <% if (_q.msg) { %>
+    <div class="notice error"><%= _q.msg %></div>
   <% } %>
 
   <form method="POST" action="/login">
-    <input type="hidden" name="next" value="<%= query?.next || '/' %>">
+    <input type="hidden" name="next" value="<%= _q.next || '/' %>">
 
     <label>Correo</label>
     <input type="email" name="email" required>
