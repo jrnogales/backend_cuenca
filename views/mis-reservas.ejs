@@ -1,18 +1,29 @@
 <% layout('partials/layout') %>
 
+<!-- Estilos locales solo para el badge -->
+<style>
+  .resv-badge{padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;color:#fff;display:inline-block;}
+  .resv-ok{background:#10b981;}      /* CONFIRMADA */
+  .resv-cancel{background:#ef4444;}  /* CANCELADA */
+</style>
+
 <h2>Mis reservas</h2>
 
 <% if (!reservas || reservas.length === 0) { %>
   <div class="notice">Aún no tienes reservas.</div>
 <% } else { %>
   <div class="cards">
-    <% reservas.forEach(r => { 
-         const hoy = new Date();
-         const inicio = new Date(r.fecha_viaje);
-         const diffMs = inicio.getTime() - hoy.getTime();
-         const estado = (r.estado || 'CONFIRMADA');
-         const dentroVentana = diffMs >= (8*60*60*1000);
-         const cancelable = (estado === 'CONFIRMADA') && dentroVentana;
+    <%
+      // Usamos 'var' para evitar warnings del parser de algunas extensiones
+      var ahoraMs = Date.now();
+      reservas.forEach(function(r) {
+        // Fuerza medianoche local para evitar TZ warnings
+        var inicio = new Date(String(r.fecha_viaje || '') + 'T00:00:00');
+        var diffMs = inicio.getTime() - ahoraMs;
+        var estado = r.estado || 'CONFIRMADA';
+        var dentroVentana = diffMs >= (8*60*60*1000);
+        var cancelable = (estado === 'CONFIRMADA') && dentroVentana;
+        var badgeClass = (estado === 'CANCELADA') ? 'resv-badge resv-cancel' : 'resv-badge resv-ok';
     %>
       <article class="card" style="display:grid;grid-template-columns:160px 1fr;gap:16px">
         <div class="pic">
@@ -21,11 +32,7 @@
         <div>
           <h3 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
             <span><%= r.titulo %></span>
-            <span
-              style="padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;
-                     color:#fff; background:<%= estado==='CANCELADA' ? '#ef4444' : '#10b981' %>;">
-              <%= estado %>
-            </span>
+            <span class="<%= badgeClass %>"><%= estado %></span>
           </h3>
 
           <p><b>Código:</b> <%= r.codigo_reserva %></p>
@@ -47,6 +54,6 @@
           <% } %>
         </div>
       </article>
-    <% }) %>
+    <% }); %>
   </div>
 <% } %>
