@@ -1,0 +1,31 @@
+<% layout('partials/layout') %>
+
+<a href="/admin" class="btn">← Volver</a>
+<h2>👤 Usuarios</h2>
+
+<div class="card">
+  <table class="table">
+    <thead><tr><th>#</th><th>Nombre</th><th>Email</th><th>Rol</th><th>Cédula</th><th>Teléfono</th><th></th></tr></thead>
+    <tbody>
+    <% usuarios.forEach(u => { %>
+      <tr>
+        <td><%= u.id %></td>
+        <td><%= (u.nombre||'') + ' ' + (u.apellido||'') %></td>
+        <td><%= u.email %></td>
+        <td><span class="badge"><%= u.rol || 'user' %></span></td>
+        <td><%= u.cedula || '-' %></td>
+        <td><%= u.telefono || '-' %></td>
+        <td>
+          <form method="POST" action="/admin/usuarios/<%= u.id %>/rol" style="display:flex;gap:6px">
+            <select name="rol">
+              <option value="user"  <%= (u.rol==='user'?'selected':'') %>>user</option>
+              <option value="admin" <%= (u.rol==='admin'?'selected':'') %>>admin</option>
+            </select>
+            <button class="btn-primary">Guardar</button>
+          </form>
+        </td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+</div>

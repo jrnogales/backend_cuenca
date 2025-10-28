@@ -113,6 +113,13 @@ html,body{
 }
 .cart-remove:hover{ background:#dc2626; }
 
+.table { width:100%; border-collapse: collapse }
+.table th, .table td { padding:8px; border-bottom:1px solid #eee; text-align:left }
+.btn { background:#f3f4f6; border:1px solid #e5e7eb; padding:8px 12px; border-radius:8px; text-decoration:none; color:#111 }
+.btn-primary { background:#2563eb; color:#fff; border:none; padding:8px 12px; border-radius:8px; text-decoration:none }
+.badge { background:#e8eefc; color:#1e40af; padding:2px 8px; border-radius:999px; font-size:12px; }
+
+
 
 /* ---------- Responsive columns ---------- */
 @media (min-width:640px){

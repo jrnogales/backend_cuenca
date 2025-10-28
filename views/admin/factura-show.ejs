@@ -1,0 +1,59 @@
+<% layout('partials/layout') %>
+
+<a href="/admin/facturas" class="btn">← Volver a facturas</a>
+
+<div class="card" style="margin-top:12px">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
+    <div>
+      <h2>Factura <%= f.codigo_factura %></h2>
+      <div><b>Estado:</b> <%= f.estado %></div>
+      <div><b>Emisión:</b> <%= f.fecha_emision %></div>
+      <div><b>Método:</b> <%= f.metodo_pago %></div>
+    </div>
+    <div>
+      <img src="https://jrnogales.neocities.org/imagenes/cuencatravel-ok.png" alt="logo" style="height:48px">
+      <div>Cuenca Travel</div>
+    </div>
+  </div>
+
+  <hr style="margin:14px 0">
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div>
+      <h3>Cliente</h3>
+      <div><b>Nombre:</b> <%= (f.nombre||'') + ' ' + (f.apellido||'') %></div>
+      <div><b>Cédula:</b> <%= f.cedula || '-' %></div>
+      <div><b>Email:</b> <%= f.email || '-' %></div>
+    </div>
+    <div>
+      <h3>Reserva</h3>
+      <div><b>Código:</b> <%= f.codigo_reserva || '-' %></div>
+      <div><b>Paquete:</b> <%= f.paquete_titulo || '-' %></div>
+      <div><b>Fecha viaje:</b> <%= f.fecha_viaje || '-' %></div>
+      <div><b>Pax:</b> A <%= f.adultos || 0 %> · N <%= f.ninos || 0 %></div>
+    </div>
+  </div>
+
+  <h3 style="margin-top:16px">Detalle</h3>
+  <table class="table">
+    <thead>
+      <tr><th>Descripción</th><th>Cant.</th><th>Precio</th><th>Total</th></tr>
+    </thead>
+    <tbody>
+      <% det.forEach(d => { %>
+        <tr>
+          <td><%= d.descripcion %></td>
+          <td><%= d.cantidad %></td>
+          <td>$<%= Number(d.precio_unitario).toFixed(2) %></td>
+          <td>$<%= Number(d.total_linea).toFixed(2) %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+
+  <div style="text-align:right">
+    <div>Subtotal: <b>$<%= Number(f.subtotal).toFixed(2) %></b></div>
+    <div>IVA: <b>$<%= Number(f.iva).toFixed(2) %></b></div>
+    <div style="font-size:18px">Total: <b>$<%= Number(f.total).toFixed(2) %></b></div>
+  </div>
+</div>

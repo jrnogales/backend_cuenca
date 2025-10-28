@@ -1,47 +1,31 @@
 <% layout('partials/layout') %>
 
+<a href="/admin" class="btn">← Volver</a>
 <h2>🧾 Facturas</h2>
 
-<style>
-  .tbl{width:100%;border-collapse:separate;border-spacing:0 8px}
-  .tbl th{font-weight:600;color:#374151;text-align:left;padding:8px}
-  .tbl td{background:#fff;border:1px solid #e5e7eb;border-left:none;border-right:none;padding:10px}
-  .badge{padding:2px 8px;border-radius:999px;font-size:12px;color:#fff}
-  .emitida{background:#2563eb}.anulada{background:#ef4444}
-</style>
-
-<% if (!facturas || facturas.length === 0) { %>
-  <div class="notice">No hay facturas registradas.</div>
-<% } else { %>
-  <table class="tbl">
+<div class="card">
+  <table class="table">
     <thead>
       <tr>
-        <th>Código</th>
-        <th>Reserva</th>
-        <th>Fecha emisión</th>
-        <th>Subtotal</th>
-        <th>IVA</th>
-        <th>Total</th>
-        <th>Método</th>
-        <th>Estado</th>
+        <th>#</th><th>Código</th><th>Reserva</th><th>Fecha</th>
+        <th>Subtotal</th><th>IVA</th><th>Total</th><th>Método</th><th>Estado</th><th></th>
       </tr>
     </thead>
     <tbody>
-      <% facturas.forEach(f => { %>
-        <tr>
-          <td><%= f.codigo_factura %></td>
-          <td><%= f.codigo_reserva || f.reserva_codigo %></td>
-          <td><%= f.fecha_emision %></td>
-          <td>$<%= Number(f.subtotal||0).toFixed(2) %></td>
-          <td>$<%= Number(f.iva||0).toFixed(2) %></td>
-          <td>$<%= Number(f.total||0).toFixed(2) %></td>
-          <td><%= f.metodo_pago || 'WEB' %></td>
-          <td>
-            <% const est = (f.estado || 'EMITIDA'); %>
-            <span class="badge <%= est==='ANULADA' ? 'anulada' : 'emitida' %>"><%= est %></span>
-          </td>
-        </tr>
-      <% }) %>
+    <% facturas.forEach(f => { %>
+      <tr>
+        <td><%= f.id %></td>
+        <td><%= f.codigo_factura %></td>
+        <td><%= f.codigo_reserva || '-' %></td>
+        <td><%= f.fecha_emision %></td>
+        <td>$<%= Number(f.subtotal).toFixed(2) %></td>
+        <td>$<%= Number(f.iva).toFixed(2) %></td>
+        <td><b>$<%= Number(f.total).toFixed(2) %></b></td>
+        <td><%= f.metodo_pago %></td>
+        <td><span class="badge"><%= f.estado %></span></td>
+        <td><a class="btn-primary" href="/admin/facturas/<%= f.id %>">Ver</a></td>
+      </tr>
+    <% }) %>
     </tbody>
   </table>
-<% } %>
+</div>
