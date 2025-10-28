@@ -1,12 +1,12 @@
 import { pool } from '../config/db.js';
 
-// GET /mis-reservas
+// controllers/reservasController.js (o donde tengas listMine)
 export async function listMine(req, res) {
   try {
     const userId = req.user.id;
     const sql = `
       SELECT r.codigo_reserva, r.fecha_viaje, r.adultos, r.ninos, r.total_usd,
-             r.creado_en,
+             r.creado_en, r.estado,           -- 👈 añade estado
              p.titulo, p.imagen
       FROM reservas r
       JOIN paquetes p ON p.id = r.paquete_id
@@ -19,6 +19,7 @@ export async function listMine(req, res) {
     res.status(500).send('No se pudo cargar tus reservas: ' + e.message);
   }
 }
+
 
 // POST /reservas/:codigo/cancelar
 export async function cancelarMiReserva(req, res) {

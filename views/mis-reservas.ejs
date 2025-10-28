@@ -10,25 +10,40 @@
          const hoy = new Date();
          const inicio = new Date(r.fecha_viaje);
          const diffMs = inicio.getTime() - hoy.getTime();
-         const cancelable = diffMs >= (8*60*60*1000);
+         const estado = (r.estado || 'CONFIRMADA');
+         const dentroVentana = diffMs >= (8*60*60*1000);
+         const cancelable = (estado === 'CONFIRMADA') && dentroVentana;
     %>
       <article class="card" style="display:grid;grid-template-columns:160px 1fr;gap:16px">
         <div class="pic">
           <img src="<%= r.imagen || '' %>" alt="<%= r.titulo %>" loading="lazy" width="160">
         </div>
         <div>
-          <h3><%= r.titulo %></h3>
+          <h3 style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span><%= r.titulo %></span>
+            <span
+              style="padding:2px 8px;border-radius:999px;font-size:12px;font-weight:600;
+                     color:#fff; background:<%= estado==='CANCELADA' ? '#ef4444' : '#10b981' %>;">
+              <%= estado %>
+            </span>
+          </h3>
+
           <p><b>Código:</b> <%= r.codigo_reserva %></p>
           <p><b>Fecha del viaje:</b> <%= r.fecha_viaje %></p>
           <p><b>Pasajeros:</b> <%= r.adultos %> adultos · <%= r.ninos %> niños</p>
           <p><b>Total:</b> $<%= Number(r.total_usd||0).toFixed(2) %></p>
 
           <% if (cancelable) { %>
-            <form method="POST" action="/reservas/<%= r.codigo_reserva %>/cancelar" onsubmit="return confirm('¿Cancelar esta reserva?');">
+            <form method="POST" action="/reservas/<%= r.codigo_reserva %>/cancelar"
+                  onsubmit="return confirm('¿Cancelar esta reserva?');">
               <button class="btn-danger">Cancelar</button>
             </form>
           <% } else { %>
-            <div class="notice">Esta reserva ya no se puede cancelar (menos de 8 horas).</div>
+            <% if (estado === 'CANCELADA') { %>
+              <div class="notice">Esta reserva fue cancelada y los cupos se repusieron.</div>
+            <% } else { %>
+              <div class="notice">Esta reserva ya no se puede cancelar (menos de 8 horas).</div>
+            <% } %>
           <% } %>
         </div>
       </article>
