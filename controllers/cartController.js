@@ -219,9 +219,19 @@ export async function checkoutCart(req, res) {
     await client.query('BEGIN');
     let totalLote = 0;
 
+    // 🔢 Acumuladores para el comprobante
+    let sumAdultos = 0;
+    let sumNinos = 0;
+    const fechas = new Set();
+
     for (const it of items) {
       const { paquete_id, fecha, adultos, ninos } = it;
       console.log('🔒 [checkout] bloqueando disponibilidad', { paquete_id, fecha: day(fecha) });
+
+      // Acumular para comprobante
+      sumAdultos += Number(adultos || 0);
+      sumNinos   += Number(ninos   || 0);
+      fechas.add(String(fecha).slice(0,10));
 
       const dispQ = `
         SELECT id, cupos_totales, cupos_reservados
@@ -285,15 +295,19 @@ export async function checkoutCart(req, res) {
     const iva = +(totalLote * 0.15).toFixed(2);
     const totalConIva = +(totalLote + iva).toFixed(2);
 
-    console.log('✅ [checkout] OK total sin IVA / con IVA', { totalLote, totalConIva });
+    // 🗓️ Fecha de resumen: única fecha o “Varias fechas”
+    const fechaResumen = (fechas.size === 1) ? [...fechas][0] : 'Varias fechas';
 
+    console.log('✅ [checkout] OK total sin IVA / con IVA', { totalLote, totalConIva, sumAdultos, sumNinos, fechaResumen });
+
+    // Ahora sí mostramos adultos/niños reales
     res.render('comprobante', {
       title: 'Compra confirmada',
       codigo: 'LOTE-' + Date.now().toString(36).toUpperCase(),
       paquete: { titulo: 'Múltiples paquetes (carrito)' },
-      fecha: new Date().toISOString().slice(0, 10),
-      adultos: 0,
-      ninos: 0,
+      fecha: fechaResumen,
+      adultos: sumAdultos,
+      ninos: sumNinos,
       total: totalConIva
     });
   } catch (e) {
