@@ -8,6 +8,7 @@ import {
   clearCart,
   updateItem
 } from '../models/Carrito.js';
+import { crearFactura } from '../models/Factura.js'; // ← NUEVO
 
 /* ============== Utils ============== */
 function calcTotals(items) {
@@ -274,12 +275,46 @@ export async function checkoutCart(req, res) {
         'RES-' + new Date().toISOString().slice(0,10).replace(/-/g,'') +
         '-'    + Math.random().toString(36).slice(2,6).toUpperCase();
 
-      await client.query(
+      // ⬇️ MODIFICADO: pedimos el id de la reserva para facturar
+      const resReserva = await client.query(
         `INSERT INTO reservas
            (codigo_reserva, paquete_id, usuario_id, fecha_viaje, adultos, ninos, total_usd, origen)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,'CART')`,
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'CART')
+         RETURNING id`,
         [bookingId, paquete_id, usuarioId, fecha, adultos, ninos, total]
       );
+      const reservaId = resReserva.rows[0].id;
+
+      // 🔖 FACTURA por cada reserva del carrito (MISMA transacción)
+      const lineas = [];
+      const titulo = p?.titulo || 'Paquete';
+      if (Number(adultos) > 0) {
+        lineas.push({
+          descripcion: `${titulo} - Adultos`,
+          cantidad: Number(adultos),
+          precio_unitario: Number(p.precio_adulto || 0)
+        });
+      }
+      if (Number(ninos) > 0) {
+        lineas.push({
+          descripcion: `${titulo} - Niños`,
+          cantidad: Number(ninos),
+          precio_unitario: Number(p.precio_nino || 0)
+        });
+      }
+      // Por seguridad, si no hay líneas, crea 1 línea con el total
+      if (lineas.length === 0) {
+        lineas.push({
+          descripcion: titulo,
+          cantidad: 1,
+          precio_unitario: Number(total || 0)
+        });
+      }
+      await crearFactura(client, {
+        reservaId,
+        metodoPago: 'WEB',
+        lineas
+      });
 
       await client.query(
         `UPDATE disponibilidad
