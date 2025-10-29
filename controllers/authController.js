@@ -5,24 +5,12 @@ import { createUser, findUserByEmail } from '../models/Usuario.js';
 
 /** ============== Helpers ============== */
 
-// Valida cédula ecuatoriana (módulo 10)
+// Acepta cualquier cédula de EXACTAMENTE 10 dígitos numéricos.
+// (Se elimina la validación por algoritmo para no bloquear registros.)
 function validarCedulaEc(cedula) {
-  const s = String(cedula || '').trim();
-  if (!/^\d{10}$/.test(s)) return false;
-
-  const prov = parseInt(s.slice(0, 2), 10);
-  if (prov < 1 || prov > 24) return false;
-
-  const d = s.split('').map(n => parseInt(n, 10));
-  let suma = 0;
-  for (let i = 0; i < 9; i++) {
-    let v = d[i];
-    if (i % 2 === 0) { v *= 2; if (v > 9) v -= 9; }
-    suma += v;
-  }
-  const ver = (10 - (suma % 10)) % 10;
-  return ver === d[9];
+  return /^\d{10}$/.test(String(cedula || '').trim());
 }
+
 
 // Permite solo rutas internas seguras para next
 function sanitizeNext(n) {
