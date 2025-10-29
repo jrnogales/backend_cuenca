@@ -213,6 +213,169 @@ html,body{
   text-align: center;
 }
 
+/***** ======= VISUAL POLISH (solo CSS) ======= *****/
+
+/* Paleta y tokens */
+:root{
+  --brand:#2563eb;
+  --brand-600:#1d4ed8;
+  --ink:#111827;
+  --muted:#6b7280;
+  --line:#e5e7eb;
+  --bg:#f8fafc;
+  --card:#ffffff;
+  --success:#16a34a;
+  --warning:#f59e0b;
+  --danger:#ef4444;
+  --radius:14px;
+  --shadow:0 8px 24px rgba(0,0,0,.08);
+}
+
+html,body{ background:var(--bg); color:var(--ink); }
+.container{ max-width: 1200px; }
+
+/* Topbar un poco más elegante */
+.topbar{
+  backdrop-filter: saturate(180%) blur(8px);
+  background: rgba(255,255,255,.9);
+  border-bottom:1px solid #f1f5f9;
+}
+.topnav a{
+  padding:6px 10px; border-radius:10px;
+}
+.topnav a:hover{ background:#f3f4f6; }
+
+/* Hero opcional (si tienes un título arriba del grid) */
+.hero{
+  margin: 12px 0 8px;
+  padding: 10px 14px;
+  background: linear-gradient(180deg, #ffffff, #f6faff);
+  border:1px solid #eef2ff;
+  border-radius: var(--radius);
+}
+.hero h1{ font-size:1.4rem; margin:0 0 4px; }
+.hero p{ color:var(--muted); margin:0; }
+
+/* Barra de filtros (visual) */
+.filters-bar{
+  display:flex; gap:10px; align-items:center;
+  background:#fff; border:1px solid var(--line);
+  border-radius: var(--radius);
+  padding:10px; margin:10px 0 16px;
+  box-shadow: 0 6px 14px rgba(0,0,0,.04);
+}
+.filters-bar input[type="date"],
+.filters-bar select{
+  border:1px solid var(--line); background:#fff;
+  padding:8px 10px; border-radius:10px;
+}
+.filters-bar .btn-primary{ padding:9px 14px; }
+
+/* Botones */
+.btn-primary{
+  background: var(--brand);
+  border:none; color:#fff; font-weight:600;
+  padding:10px 14px; border-radius:12px;
+  box-shadow: 0 4px 10px rgba(37,99,235,.25);
+  transition: transform .15s ease, box-shadow .2s ease, background .2s ease;
+}
+.btn-primary:hover{ background:var(--brand-600); transform: translateY(-1px); }
+.btn-outline{
+  background:#fff; border:1px solid var(--line); color:var(--ink);
+  padding:10px 14px; border-radius:12px;
+}
+.btn-outline:hover{ background:#f9fafb; }
+
+/* Cards de paquetes */
+.card{
+  background: var(--card);
+  border:1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.card-tour{
+  display:flex; flex-direction:column; height:100%;
+  overflow:hidden; border-radius: var(--radius);
+  border:1px solid var(--line); background: #fff;
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.card-tour:hover{
+  transform: translateY(-3px);
+  box-shadow: 0 12px 26px rgba(0,0,0,.10);
+  border-color:#dbe3f0;
+}
+.card-tour img{
+  width:100%; aspect-ratio: 16/9; object-fit:cover;
+  display:block; background:#f3f4f6;
+}
+.card-tour .content{
+  padding:12px 14px; display:grid; gap:8px;
+}
+.card-tour .meta{
+  font-size:.92rem; color:var(--muted);
+  display:flex; gap:10px; align-items:center; flex-wrap:wrap;
+}
+.price-row{
+  display:flex; align-items:center; justify-content:space-between;
+  padding-top:6px; border-top:1px dashed #e8edf5;
+}
+.price{
+  font-weight:800; font-size:1.1rem;
+}
+.small-note{ color:var(--muted); font-size:.86rem; }
+
+/* Badges */
+.badge{
+  display:inline-flex; align-items:center; gap:6px;
+  font-size:.78rem; font-weight:700;
+  border-radius:999px; padding:6px 10px;
+  border:1px solid var(--line); background:#fff;
+}
+.badge-green{ color:#065f46; background:#ecfdf5; border-color:#d1fae5; }
+.badge-blue { color:#1e40af; background:#eef2ff; border-color:#e0e7ff; }
+.badge-yellow{ color:#92400e; background:#fef3c7; border-color:#fde68a; }
+
+/* Tipos e iconos pequeños */
+.muted{ color:var(--muted); }
+.list-compact{ margin:0; padding:0; list-style:none; }
+.list-compact li{ display:flex; align-items:center; gap:8px; margin:4px 0; }
+
+/* Inputs más cómodos */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+input[type="date"],
+select{
+  width:100%; padding:10px 12px; border:1px solid var(--line);
+  border-radius:12px; outline:none; background:#fff;
+  transition: border-color .2s ease, box-shadow .2s ease;
+}
+input:focus, select:focus{
+  border-color:#c7d2fe; box-shadow: 0 0 0 4px #eef2ff;
+}
+
+/* Grid responsivo */
+.grid{
+  display:grid; gap:16px;
+  grid-template-columns: repeat(12, 1fr);
+}
+.col-4{ grid-column: span 4; }
+@media (max-width:1024px){ .col-4{ grid-column: span 6; } }
+@media (max-width:640px){ .col-4{ grid-column: span 12; } }
+
+/* Etiquetas auxiliares en cards */
+.kv{ display:flex; align-items:center; gap:6px; color:var(--muted); font-size:.9rem; }
+.kv .dot{ width:8px; height:8px; background: #22c55e; border-radius:50%; }
+
+/* Pequeños detalles */
+hr.soft{ border:0; height:1px; background:linear-gradient(90deg, transparent, #e5e7eb, transparent); margin:10px 0; }
+.shadow-sm{ box-shadow: 0 4px 14px rgba(0,0,0,.06); }
+.round{ border-radius: var(--radius); }
+
+/* Footer liviano (si lo tienes) */
+.footer{ color:var(--muted); font-size:.9rem; padding:24px 0; }
+
 
 /* ---------- Responsive columns ---------- */
 @media (min-width:640px){
