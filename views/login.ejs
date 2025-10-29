@@ -1,21 +1,28 @@
 <% layout('partials/layout') %>
 
-<div class="card" style="max-width:480px">
-  <h2>Ingresar</h2>
+<div class="auth-page">
+  <div class="auth-card">
+    <h2>Iniciar sesión</h2>
+    <p class="sub">Hola, para continuar inicia sesión.</p>
 
-  <% if (error) { %>
-    <div class="notice error"><%= error %></div>
-  <% } %>
+    <% if (error) { %>
+      <div class="alert"><%= error %></div>
+    <% } %>
 
-  <form method="POST" action="/login">
-    <input type="hidden" name="next" value="<%= next || '' %>">
+    <form method="POST" action="/login">
+      <input type="hidden" name="next" value="<%= next || '' %>">
 
-    <label>Correo</label>
-    <input type="email" name="email" required value="<%= email || '' %>">
+      <label>Correo</label>
+      <input type="email" name="email" required value="<%= email || '' %>">
 
-    <label>Contraseña</label>
-    <input type="password" name="password" required>
+      <label>Contraseña</label>
+      <input type="password" name="password" required>
 
-    <button class="btn-primary">Entrar</button>
-  </form>
+      <button class="btn-primary">Entrar</button>
+    </form>
+
+    <div class="auth-links">
+      ¿No tienes cuenta? <a href="/register">Regístrate aquí</a>
+    </div>
+  </div>
 </div>

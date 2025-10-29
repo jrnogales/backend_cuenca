@@ -1,58 +1,64 @@
 <% layout('partials/layout') %>
 
-<h2>Crear cuenta</h2>
+<div class="auth-page">
+  <div class="auth-card" style="max-width:640px;">
+    <h2>Crear cuenta</h2>
+    <p class="sub">Completa tus datos para registrarte.</p>
 
-<% if (typeof error === 'string' && error) { %>
-  <div class="notice error"><%= error %></div>
-<% } %>
+    <% if (typeof error === 'string' && error) { %>
+      <div class="alert"><%= error %></div>
+    <% } %>
 
-<div class="card" style="max-width:640px;margin:auto;">
-  <form method="POST" action="/register" id="f-register">
-    <label>Nombre</label>
-    <input type="text" name="nombre" required value="<%= nombre || '' %>">
+    <form method="POST" action="/register" id="f-register">
+      <label>Nombre</label>
+      <input type="text" name="nombre" required value="<%= nombre || '' %>">
 
-    <label>Apellido</label>
-    <input type="text" name="apellido" required value="<%= apellido || '' %>">
+      <label>Apellido</label>
+      <input type="text" name="apellido" required value="<%= apellido || '' %>">
 
-    <label>Cédula</label>
-    <input
-      type="text"
-      name="cedula"
-      required
-      inputmode="numeric"
-      autocomplete="off"
-      minlength="10"
-      maxlength="10"
-      pattern="[0-9]{10}"
-      placeholder="10 dígitos"
-      value="<%= cedula || '' %>"
-    >
-    <small class="muted">Debe tener 10 dígitos válidos (Ecuador).</small>
+      <label>Cédula</label>
+      <input
+        type="text"
+        name="cedula"
+        required
+        inputmode="numeric"
+        autocomplete="off"
+        minlength="10"
+        maxlength="10"
+        pattern="[0-9]{10}"
+        placeholder="10 dígitos"
+        value="<%= cedula || '' %>"
+      >
+      <small class="muted">Debe tener 10 dígitos válidos (Ecuador).</small>
 
-    <label>Email</label>
-    <input type="email" name="email" required value="<%= email || '' %>">
+      <label>Email</label>
+      <input type="email" name="email" required value="<%= email || '' %>">
 
-    <label>Teléfono</label>
-    <input type="tel" name="telefono" inputmode="tel" value="<%= telefono || '' %>">
+      <label>Teléfono</label>
+      <input type="tel" name="telefono" inputmode="tel" value="<%= telefono || '' %>">
 
-    <label>Contraseña</label>
-    <input type="password" name="password" required minlength="6">
+      <label>Contraseña</label>
+      <input type="password" name="password" required minlength="6">
 
-    <button type="submit" class="btn" style="width:100%;margin-top:12px;">Registrar</button>
-  </form>
+      <button type="submit" class="btn-primary" style="width:100%;margin-top:12px;">Registrar</button>
+    </form>
+
+    <div class="auth-links">
+      ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
+    </div>
+  </div>
 </div>
 
-<<script>
+<script>
 // Validación de cédula ecuatoriana (versión estable)
 function validarCedulaEc(cedula) {
-  // Debe tener exactamente 10 dígitos numéricos
   if (!/^\d{10}$/.test(cedula)) return false;
 
   const provincia = parseInt(cedula.substring(0, 2), 10);
   if (provincia < 1 || provincia > 24) return false;
 
   const digitos = cedula.split('').map(Number);
-  const verificador = digitos.pop(); // último dígito
+  const verificador = digitos.pop();
   let suma = 0;
 
   for (let i = 0; i < digitos.length; i++) {

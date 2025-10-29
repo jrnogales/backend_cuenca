@@ -119,6 +119,99 @@ html,body{
 .btn-primary { background:#2563eb; color:#fff; border:none; padding:8px 12px; border-radius:8px; text-decoration:none }
 .badge { background:#e8eefc; color:#1e40af; padding:2px 8px; border-radius:999px; font-size:12px; }
 
+/* ==== AUTH STYLING (login / register) ==== */
+.auth-page {
+  min-height: calc(100vh - 120px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f9fafb;
+}
+
+.auth-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.06);
+  padding: 2.5rem;
+  max-width: 480px;
+  width: 100%;
+}
+
+.auth-card h2 {
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.auth-card p.sub {
+  text-align: center;
+  color: #6b7280;
+  margin-bottom: 1.5rem;
+}
+
+.auth-card label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 0.4rem;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  margin-bottom: 1rem;
+  outline: none;
+  transition: 0.2s border;
+}
+
+.auth-card input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,.15);
+}
+
+.auth-card button {
+  width: 100%;
+  padding: 0.8rem;
+  border: none;
+  background-color: #2563eb;
+  color: #fff;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.auth-card button:hover {
+  background-color: #1e40af;
+}
+
+.auth-links {
+  text-align: center;
+  margin-top: 1rem;
+  color: #6b7280;
+}
+
+.auth-links a {
+  color: #2563eb;
+  text-decoration: none;
+}
+
+.auth-links a:hover {
+  text-decoration: underline;
+}
+
+.alert {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  padding: 10px;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
 
 
 /* ---------- Responsive columns ---------- */
