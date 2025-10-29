@@ -129,7 +129,7 @@ export async function login(req, res) {
     const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.cookie('token', token, { httpOnly: true, sameSite: 'lax' });
 
-    const fallback = (payload.rol === 'admin') ? '/admin' : '/mis-reservas';
+    const fallback = (payload.rol === 'admin') ? '/admin' : '/';
     const dest = nextFromBody || fallback;
     return res.redirect(dest);
   } catch (e) {
