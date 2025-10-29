@@ -1,36 +1,79 @@
 <% layout('partials/layout') %>
 
-<a href="/admin" class="btn">← Volver</a>
-<h2>📅 Disponibilidad</h2>
-
-<div class="card" style="margin-bottom:16px">
-  <h3>Configurar cupos por fecha</h3>
-  <form method="POST" action="/admin/disponibilidad/save" style="display:flex;gap:8px;flex-wrap:wrap">
-    <select name="paquete_id" required>
-      <option value="">— Paquete —</option>
-      <% paquetes.forEach(p => { %>
-        <option value="<%= p.id %>"><%= p.titulo %> (<%= p.codigo %>)</option>
-      <% }) %>
-    </select>
-    <input type="date" name="fecha" required>
-    <input type="number" min="0" name="cupos_totales" placeholder="Cupos totales" required>
-    <button class="btn-primary">Guardar</button>
-  </form>
+<div class="admin-header">
+  <h2>📅 Disponibilidad</h2>
+  <div class="admin-actions">
+    <a href="/admin" class="btn-secondary">← Volver al panel</a>
+  </div>
 </div>
 
 <div class="card">
-  <table class="table">
-    <thead><tr><th>Fecha</th><th>Paquete</th><th>Totales</th><th>Reservados</th><th>Restantes</th></tr></thead>
-    <tbody>
-      <% disp.forEach(d => { %>
+  <div style="margin-bottom:10px;display:flex;gap:12px;align-items:center;">
+    <div>Total registros: <b><%= total %></b></div>
+    <form method="get" action="/admin/disponibilidad" style="display:flex;gap:8px;align-items:center;">
+      <input type="hidden" name="page" value="1">
+      <label>Tamaño página</label>
+      <select name="pageSize" onchange="this.form.submit()">
+        <% [25,50,100,200].forEach(ps => { %>
+          <option value="<%= ps %>" <%= (ps===pageSize?'selected':'') %>><%= ps %></option>
+        <% }) %>
+      </select>
+      <noscript><button class="btn">Aplicar</button></noscript>
+    </form>
+  </div>
+
+  <div class="table-wrap">
+    <table class="table">
+      <thead>
         <tr>
-          <td><%= String(d.fecha).slice(0,10) %></td>
-          <td><%= d.titulo %></td>
-          <td><%= d.cupos_totales %></td>
-          <td><%= d.cupos_reservados %></td>
-          <td><%= (Number(d.cupos_totales)-Number(d.cupos_reservados)) %></td>
+          <th>#</th>
+          <th>Paquete</th>
+          <th>Código</th>
+          <th>Fecha</th>
+          <th style="text-align:right;">Totales</th>
+          <th style="text-align:right;">Reservados</th>
+          <th style="text-align:right;">Restantes</th>
         </tr>
-      <% }) %>
-    </tbody>
-  </table>
+      </thead>
+      <tbody>
+        <% rows.forEach((r, idx) => { 
+             const rest = Number(r.cupos_totales||0) - Number(r.cupos_reservados||0);
+        %>
+          <tr>
+            <td><%= (page-1)*pageSize + idx + 1 %></td>
+            <td><%= r.titulo %></td>
+            <td><code><%= r.codigo %></code></td>
+            <td><%= String(r.fecha).slice(0,10) %></td>
+            <td style="text-align:right;"><%= r.cupos_totales %></td>
+            <td style="text-align:right;"><%= r.cupos_reservados %></td>
+            <td style="text-align:right;"><b><%= rest %></b></td>
+          </tr>
+        <% }) %>
+        <% if (!rows.length) { %>
+          <tr><td colspan="7" class="muted" style="text-align:center;">No hay datos</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Paginador -->
+  <div class="pager">
+    <a class="btn-secondary <%= page===1?'disabled':'' %>" href="/admin/disponibilidad?page=1&pageSize=<%= pageSize %>">« Primera</a>
+    <a class="btn-secondary <%= page===1?'disabled':'' %>" href="/admin/disponibilidad?page=<%= Math.max(1, page-1) %>&pageSize=<%= pageSize %>">‹ Anterior</a>
+
+    <span>Página <b><%= page %></b> de <b><%= totalPages %></b></span>
+
+    <a class="btn-secondary <%= page===totalPages?'disabled':'' %>" href="/admin/disponibilidad?page=<%= Math.min(totalPages, page+1) %>&pageSize=<%= pageSize %>">Siguiente ›</a>
+    <a class="btn-secondary <%= page===totalPages?'disabled':'' %>" href="/admin/disponibilidad?page=<%= totalPages %>&pageSize=<%= pageSize %>">Última »</a>
+  </div>
 </div>
+
+<style>
+  .admin-header{display:flex;justify-content:space-between;align-items:center;margin:12px 0 16px}
+  .table-wrap{overflow:auto}
+  .table{width:100%;border-collapse:collapse}
+  .table th,.table td{padding:10px;border-bottom:1px solid #eee}
+  .table th{background:#fafafa;text-align:left}
+  .pager{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:12px}
+  .btn-secondary.disabled{pointer-events:none;opacity:.5}
+</style>
