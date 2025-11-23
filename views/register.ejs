@@ -1,168 +1,168 @@
 <% layout('partials/layout') %>
 
 <div style="
-  max-width:420px;
+  max-width:480px;
   margin:40px auto;
-  background:#fff;
-  padding:40px 32px;
+  background:white;
+  padding:32px;
   border-radius:16px;
-  box-shadow:0 8px 24px rgba(0,0,0,.12);
+  box-shadow:0 6px 20px rgba(0,0,0,0.08);
 ">
 
-  <h2 style="text-align:center; font-weight:700; margin-bottom:6px;">
-    Crear cuenta
-  </h2>
+  <h2 style="text-align:center; margin-bottom:8px;">Regístrate</h2>
   <p style="text-align:center; color:#6b7280; margin-bottom:24px;">
-    Completa tus datos para registrarte.
+    Completa tus datos para continuar.
   </p>
 
-  <form method="POST" action="/register">
+  <form id="regForm" method="POST" action="/register">
 
     <!-- Nombre -->
-    <label>Nombre</label>
-    <input id="nombre" name="nombre" type="text"
-           class="input" required minlength="1"
-           placeholder="Tu nombre">
+    <input id="nombre" name="nombre" type="text" placeholder="Tu nombre"
+      class="inp" required>
 
-    <small id="msg-nombre" class="msg"></small>
+    <div class="msg" id="msg-nombre"></div>
 
     <!-- Apellido -->
-    <label style="margin-top:16px;">Apellido</label>
-    <input id="apellido" name="apellido" type="text"
-           class="input" required minlength="1"
-           placeholder="Tu apellido">
+    <input id="apellido" name="apellido" type="text" placeholder="Tu apellido"
+      class="inp" required>
 
-    <small id="msg-apellido" class="msg"></small>
+    <div class="msg" id="msg-apellido"></div>
 
     <!-- Cédula -->
-    <label style="margin-top:16px;">Cédula</label>
-    <input id="cedula" name="cedula" type="text"
-           class="input" maxlength="10"
-           placeholder="10 dígitos">
+    <input id="cedula" name="cedula" type="text" placeholder="Cédula (10 dígitos)"
+      class="inp" maxlength="10" required>
 
-    <small id="msg-cedula" class="msg"></small>
+    <div class="msg" id="msg-cedula"></div>
 
     <!-- Email -->
-    <label style="margin-top:16px;">Email</label>
-    <input id="email" name="email" type="email"
-           class="input" placeholder="ejemplo@correo.com">
+    <input id="email" name="email" type="email" placeholder="ejemplo@correo.com"
+      class="inp" required>
 
-    <small id="msg-email" class="msg"></small>
+    <div class="msg" id="msg-email"></div>
 
     <!-- Teléfono -->
-    <label style="margin-top:16px;">Teléfono</label>
-    <input id="telefono" name="telefono" type="text"
-           class="input" maxlength="10"
-           placeholder="10 dígitos">
+    <input id="telefono" name="telefono" type="text" placeholder="Teléfono (10 dígitos)"
+      class="inp" maxlength="10" required>
 
-    <small id="msg-telefono" class="msg"></small>
+    <div class="msg" id="msg-telefono"></div>
 
     <!-- Contraseña -->
-    <label style="margin-top:16px;">Contraseña</label>
     <input id="password" name="password" type="password"
-           class="input" minlength="6" placeholder="Mínimo 6 caracteres">
+      placeholder="Contraseña (mínimo 6 caracteres)"
+      class="inp" minlength="6" required>
 
-    <small id="msg-pass" class="msg"></small>
+    <div class="msg" id="msg-password"></div>
 
-    <button id="btn-register" class="btn-primary"
-            style="margin-top:28px; width:100%; font-size:16px;">
+    <button id="btnReg" class="btn-primary" style="width:100%; margin-top:20px;" disabled>
       Registrar
     </button>
-
   </form>
-
-  <p style="text-align:center; margin-top:18px;">
-    ¿Ya tienes cuenta?
-    <a href="/login" style="color:#2563eb;">Inicia sesión</a>
-  </p>
 </div>
 
 <style>
-  .input {
-    width:100%;
-    padding:12px 14px;
-    border:1px solid #e5e7eb;
-    border-radius:10px;
-    margin-top:4px;
-    font-size:15px;
-    outline:none;
+  .inp {
+    width:100%; padding:12px 14px;
+    border:1px solid #ddd; border-radius:10px;
+    margin-bottom:6px; outline:none; transition:.2s;
   }
-  .input:focus {
-    border-color:#2563eb;
-    box-shadow:0 0 0 3px rgba(37,99,235,0.15);
-  }
+  .inp.ok { border-color:#10b981; }
+  .inp.err { border-color:#ef4444; }
+
   .msg {
-    color:#e11d48;
+    min-height:16px;
     font-size:13px;
-    height:14px;
-    margin-top:4px;
-    display:block;
+    margin-bottom:10px;
+    color:#ef4444;
   }
 </style>
 
 <script>
-document.addEventListener("DOMContentLoaded", () => {
+  const f = document.getElementById("regForm");
+  const btn = document.getElementById("btnReg");
 
   // Campos
-  const nombre   = document.getElementById("nombre");
+  const nombre = document.getElementById("nombre");
   const apellido = document.getElementById("apellido");
-  const cedula   = document.getElementById("cedula");
-  const email    = document.getElementById("email");
+  const cedula = document.getElementById("cedula");
+  const email = document.getElementById("email");
   const telefono = document.getElementById("telefono");
-  const pass     = document.getElementById("password");
-  const btn      = document.getElementById("btn-register");
+  const password = document.getElementById("password");
 
   // Mensajes
-  const msgN  = document.getElementById("msg-nombre");
-  const msgA  = document.getElementById("msg-apellido");
-  const msgC  = document.getElementById("msg-cedula");
-  const msgE  = document.getElementById("msg-email");
-  const msgT  = document.getElementById("msg-telefono");
-  const msgP  = document.getElementById("msg-pass");
+  const mNombre = document.getElementById("msg-nombre");
+  const mApellido = document.getElementById("msg-apellido");
+  const mCedula = document.getElementById("msg-cedula");
+  const mEmail = document.getElementById("msg-email");
+  const mTelefono = document.getElementById("msg-telefono");
+  const mPassword = document.getElementById("msg-password");
 
-  // Validación en tiempo real
-  nombre.addEventListener("input", () => {
-    msgN.textContent = nombre.value.trim().length < 1 ? "Ingrese su nombre" : "";
-  });
+  function validar() {
+    let ok = true;
 
-  apellido.addEventListener("input", () => {
-    msgA.textContent = apellido.value.trim().length < 1 ? "Ingrese su apellido" : "";
-  });
-
-  cedula.addEventListener("input", () => {
-    const ok = /^[0-9]{10}$/.test(cedula.value);
-    msgC.textContent = ok ? "" : "Debe tener 10 números";
-  });
-
-  email.addEventListener("input", () => {
-    const ok = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/.test(email.value);
-    msgE.textContent = ok ? "" : "Debe ser email válido @xxxx.com";
-  });
-
-  telefono.addEventListener("input", () => {
-    const ok = /^[0-9]{10}$/.test(telefono.value);
-    msgT.textContent = ok ? "" : "Debe tener 10 números";
-  });
-
-  pass.addEventListener("input", () => {
-    msgP.textContent = pass.value.length < 6 ? "Mínimo 6 caracteres" : "";
-  });
-
-  // Evitar envío si algo está mal
-  document.querySelector("form").addEventListener("submit", (e) => {
-
-    if (
-      msgN.textContent ||
-      msgA.textContent ||
-      msgC.textContent ||
-      msgE.textContent ||
-      msgT.textContent ||
-      msgP.textContent
-    ) {
-      e.preventDefault();
-      alert("Por favor completa correctamente todos los campos.");
+    // Nombre
+    if (nombre.value.trim().length < 1) {
+      nombre.className = "inp err";
+      mNombre.textContent = "Ingrese su nombre.";
+      ok = false;
+    } else {
+      nombre.className = "inp ok";
+      mNombre.textContent = "";
     }
-  });
 
-});
+    // Apellido
+    if (apellido.value.trim().length < 1) {
+      apellido.className = "inp err";
+      mApellido.textContent = "Ingrese su apellido.";
+      ok = false;
+    } else {
+      apellido.className = "inp ok";
+      mApellido.textContent = "";
+    }
+
+    // Cédula (exactamente 10 números)
+    if (!/^[0-9]{10}$/.test(cedula.value)) {
+      cedula.className = "inp err";
+      mCedula.textContent = "Debe tener 10 dígitos.";
+      ok = false;
+    } else {
+      cedula.className = "inp ok";
+      mCedula.textContent = "";
+    }
+
+    // Email que termine en .com
+    if (!/^[^\s@]+@[^\s@]+\.com$/.test(email.value)) {
+      email.className = "inp err";
+      mEmail.textContent = "Ingrese un email válido que termine en .com";
+      ok = false;
+    } else {
+      email.className = "inp ok";
+      mEmail.textContent = "";
+    }
+
+    // Teléfono (exactamente 10 dígitos)
+    if (!/^[0-9]{10}$/.test(telefono.value)) {
+      telefono.className = "inp err";
+      mTelefono.textContent = "Debe tener 10 dígitos.";
+      ok = false;
+    } else {
+      telefono.className = "inp ok";
+      mTelefono.textContent = "";
+    }
+
+    // Contraseña
+    if (password.value.length < 6) {
+      password.className = "inp err";
+      mPassword.textContent = "Mínimo 6 caracteres.";
+      ok = false;
+    } else {
+      password.className = "inp ok";
+      mPassword.textContent = "";
+    }
+
+    btn.disabled = !ok;
+  }
+
+  [nombre, apellido, cedula, email, telefono, password].forEach(c => {
+    c.addEventListener("input", validar);
+  });
 </script>
