@@ -6,28 +6,32 @@ import {
   listReservas,
   listFacturas,
   showFactura,
-  // Gestión
-  listPaquetes, savePaquete, deletePaquete,
-  listDisponibilidad, upsertDisponibilidad,
-  listUsuarios, updateUsuarioRol,
+  // Gestión de paquetes
+  listPaquetes,
+  savePaquete,
+  // Gestión de usuarios
+  listUsuarios,
+  updateUsuarioRol,
 } from '../controllers/adminController.js';
 
 const router = express.Router();
 
-// Dashboard + secciones
+// Dashboard
 router.get('/admin', requireAdmin, dashboard);
 
-router.get('/admin/reservas',   requireAdmin, listReservas);
-router.get('/admin/facturas',   requireAdmin, listFacturas);
+// Reservas
+router.get('/admin/reservas', requireAdmin, listReservas);
+
+// Facturas
+router.get('/admin/facturas', requireAdmin, listFacturas);
 router.get('/admin/facturas/:id', requireAdmin, showFactura);
 
-router.get('/admin/paquetes',   requireAdmin, listPaquetes);
+// Paquetes
+router.get('/admin/paquetes', requireAdmin, listPaquetes);
 router.post('/admin/paquetes/save', requireAdmin, savePaquete);
 
-
-router.get('/admin/usuarios',   requireAdmin, listUsuarios);
+// Usuarios
+router.get('/admin/usuarios', requireAdmin, listUsuarios);
 router.post('/admin/usuarios/:id/rol', requireAdmin, updateUsuarioRol);
-router.post('/admin/paquetes/delete/:id', requireAdmin, deletePaquete);
-
 
 export default router;
