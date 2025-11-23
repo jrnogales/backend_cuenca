@@ -11,11 +11,9 @@
     <input name="codigo"       placeholder="Código" required>
     <input name="titulo"       placeholder="Título" required>
 
-    <!-- 🔒 No permitir negativos -->
     <input name="precio_adulto" placeholder="Precio adulto"
            type="number" step="0.01" min="0" required>
 
-    <!-- 🔒 No permitir negativos -->
     <input name="precio_nino"   placeholder="Precio niño"
            type="number" step="0.01" min="0" required>
 
@@ -54,26 +52,27 @@
 
               <form method="POST" action="/admin/paquetes/save"
                     style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px">
+
                 <input type="hidden" name="id" value="<%= p.id %>">
-
-                <input name="codigo"       value="<%= p.codigo %>" required>
-                <input name="titulo"       value="<%= p.titulo %>" required>
-
-                <!-- 🔒 No permitir negativos -->
-                <input name="precio_adulto" type="number" step="0.01"
-                       min="0" value="<%= p.precio_adulto %>" required>
-
-                <!-- 🔒 No permitir negativos -->
-                <input name="precio_nino"   type="number" step="0.01"
-                       min="0" value="<%= p.precio_nino %>" required>
-
-                <input name="imagen" value="<%= p.imagen||'' %>">
-
-                <textarea name="descripcion" style="grid-column:1/6"><%= p.descripcion||'' %></textarea>
+                <input name="codigo" value="<%= p.codigo %>" required>
+                <input name="titulo" value="<%= p.titulo %>" required>
+                <input name="precio_adulto" type="number" step="0.01" min="0"
+                       value="<%= p.precio_adulto %>" required>
+                <input name="precio_nino"   type="number" step="0.01" min="0"
+                       value="<%= p.precio_nino %>" required>
+                <input name="imagen" value="<%= p.imagen || '' %>">
+                <textarea name="descripcion" style="grid-column:1/6"><%= p.descripcion || '' %></textarea>
 
                 <button class="btn-primary" style="grid-column:1/2">Actualizar</button>
               </form>
             </details>
+
+            <form method="POST"
+                  action="/admin/paquetes/delete/<%= p.id %>"
+                  onsubmit="return confirm('¿Seguro que deseas eliminar este paquete?\nEsta acción es irreversible.');"
+                  style="margin-top:6px">
+              <button class="btn-danger" style="width:100%">🗑 Eliminar</button>
+            </form>
           </td>
         </tr>
       <% }) %>

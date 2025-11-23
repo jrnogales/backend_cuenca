@@ -123,6 +123,25 @@ export async function savePaquete(req, res) {
   }
 }
 
+/* ================= Eliminar Paquete ================= */
+export async function deletePaquete(req, res) {
+  try {
+    const { id } = req.params;
+
+    // elimina disponibilidad, carrito y reservas asociadas
+    await pool.query(`DELETE FROM disponibilidad WHERE paquete_id = $1`, [id]);
+    await pool.query(`DELETE FROM carrito WHERE paquete_id = $1`, [id]);
+
+    // No eliminamos reservas ya emitidas (por integridad), solo el paquete
+    await pool.query(`DELETE FROM paquetes WHERE id = $1`, [id]);
+
+    res.redirect('/admin/paquetes');
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("No se pudo eliminar el paquete: " + e.message);
+  }
+}
+
 
 /* ============== Disponibilidad (por día) ============== */
 export async function listDisponibilidad(req, res) {

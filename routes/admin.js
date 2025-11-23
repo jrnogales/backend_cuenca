@@ -7,7 +7,7 @@ import {
   listFacturas,
   showFactura,
   // Gestión
-  listPaquetes, savePaquete,
+  listPaquetes, savePaquete, deletePaquete,
   listDisponibilidad, upsertDisponibilidad,
   listUsuarios, updateUsuarioRol,
 } from '../controllers/adminController.js';
@@ -29,5 +29,7 @@ router.post('/admin/disponibilidad/save', requireAdmin, upsertDisponibilidad);
 
 router.get('/admin/usuarios',   requireAdmin, listUsuarios);
 router.post('/admin/usuarios/:id/rol', requireAdmin, updateUsuarioRol);
+router.post('/admin/paquetes/delete/:id', requireAdmin, deletePaquete);
+
 
 export default router;
