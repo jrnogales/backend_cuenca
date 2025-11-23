@@ -7,16 +7,6 @@
       <input type="date" id="f-fecha">
     </div>
 
-    <!-- 🆕 Filtro por ciudad -->
-    <div class="group">
-      <label>Ciudad</label>
-      <select id="f-ciudad">
-        <option value="">Todas</option>
-        <option value="CUEN">Cuenca</option>
-        <option value="UIO">Quito</option>
-      </select>
-    </div>
-
     <div class="group">
       <label>Adultos</label>
       <select id="f-adultos">
@@ -32,6 +22,16 @@
         <% for (let i=0;i<=10;i++){ %>
           <option value="<%= i %>"><%= i %></option>
         <% } %>
+      </select>
+    </div>
+
+    <!-- Filtro por ciudad -->
+    <div class="group">
+      <label>Ciudad</label>
+      <select id="f-ciudad">
+        <option value="">Todas</option>
+        <option value="CUEN">Cuenca</option>
+        <option value="UIO">Quito</option>
       </select>
     </div>
 
@@ -52,11 +52,14 @@
       const pa = Number(p.precio_adulto||0);
       const pn = Number(p.precio_nino||0);
 
-      // 🆕 ciudad según código: CUEN-* / UIO-*
-      const cod = String(p.codigo || '');
-      let cityCode = '';
-      if (cod.startsWith('CUEN')) cityCode = 'CUEN';
-      else if (cod.startsWith('UIO')) cityCode = 'UIO';
+      const codigo = String(p.codigo || '');
+      const cityCode = codigo.slice(0,4).toUpperCase();     // CUEN / UIO / etc
+      let ciudad = p.ciudad;
+      if (!ciudad) {
+        if (cityCode === 'UIO') ciudad = 'Quito';
+        else if (cityCode === 'CUEN') ciudad = 'Cuenca';
+        else ciudad = 'Cuenca'; // por defecto
+      }
   %>
     <article class="card" 
       data-id="<%= p.codigo %>" 
@@ -64,7 +67,7 @@
       data-pn="<%= pn %>"
       data-img="<%= p.imagen || '' %>"
       data-title="<%= p.titulo %>"
-      data-city="<%= cityCode %>">
+      data-city-code="<%= cityCode %>">
 
       <div class="pic">
         <!-- Usar solo URL alojada en BD -->
@@ -76,7 +79,7 @@
 
         <p class="meta">
           <span class="dot"></span> 
-          <%= p.ciudad || (cityCode === 'UIO' ? 'Quito' : 'Cuenca') %> · 
+          <%= ciudad %> · 
           <%= (p.duracion_horas || ((p.duracion_dias||1)*8)) %> h
         </p>
 
@@ -127,12 +130,22 @@
   const $adultSel = document.getElementById('f-adultos');
   const $ninoSel  = document.getElementById('f-ninos');
   const $fecha    = document.getElementById('f-fecha');
+  const $citySel  = document.getElementById('f-ciudad');
   const $apply    = document.getElementById('btn-aplicar');
-  const $citySel  = document.getElementById('f-ciudad');   // 🆕 select ciudad
 
   if ($fecha) {
     $fecha.min = todayLocalISO();
     if (!$fecha.value || $fecha.value < $fecha.min) $fecha.value = $fecha.min;
+  }
+
+  // 🔒 función para evitar valores negativos en inputs numéricos
+  function preventNegativeInputs(input, minValue) {
+    if (!input) return;
+    input.addEventListener('input', () => {
+      let val = parseInt(input.value || String(minValue), 10);
+      if (isNaN(val) || val < minValue) val = minValue;
+      input.value = val;
+    });
   }
 
   function calcCard(card){
@@ -149,25 +162,19 @@
     if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
   }
 
-  // --- NUEVO: aplica filtro de ciudad + actualiza cantidades ---
-  function applyFilters(){
-    if ($fecha && $fecha.value < $fecha.min) $fecha.value = $fecha.min;
-
-    const cityFilter = $citySel?.value || ''; // '' = todas
-    document.querySelectorAll('.card[data-id]').forEach(card=>{
-      // sincronizar adultos/niños con selects superiores
-      const inA = card.querySelector('.in-adultos');
-      const inN = card.querySelector('.in-ninos');
-      if (inA && $adultSel) inA.value = parseInt($adultSel.value, 10);
-      if (inN && $ninoSel)  inN.value = parseInt($ninoSel.value, 10);
-      calcCard(card);
-
-      // mostrar / ocultar por ciudad
-      const city = card.dataset.city || '';
-      if (!cityFilter || city === cityFilter) {
+  // --- NUEVO: filtro por ciudad ---
+  function applyCityFilter() {
+    const city = ($citySel?.value || '').toUpperCase(); // '' | 'CUEN' | 'UIO'
+    document.querySelectorAll('.card[data-id]').forEach(card => {
+      const code = (card.dataset.id || '').toUpperCase(); // CUEN-XXXX, UIO-XXXX
+      if (!city) {
         card.style.display = '';
+      } else if (city === 'CUEN') {
+        card.style.display = code.startsWith('CUEN') ? '' : 'none';
+      } else if (city === 'UIO') {
+        card.style.display = code.startsWith('UIO') ? '' : 'none';
       } else {
-        card.style.display = 'none';
+        card.style.display = '';
       }
     });
   }
@@ -219,9 +226,10 @@
     emitCartUpdated(arr);
   }
 
+  // 👂 Ejemplo de render del mini-carrito (si ya tienes uno, solo asegúrate de escuchar ct:cart-updated)
   document.addEventListener('ct:cart-updated', (e)=>{
     const arr = e.detail || [];
-    const mini = document.querySelector('[data-mini-cart]');
+    const mini = document.querySelector('[data-mini-cart]'); // <div data-mini-cart>…</div> en tu layout
     if (!mini) return;
     const { subtotal, iva, total } = computeTotals(arr);
     mini.querySelector('[data-subtotal]')?.replaceChildren(`$${subtotal.toFixed(2)}`);
@@ -243,12 +251,19 @@
     }
   });
 
-  // ------- Cards ------->
+  // ------- Cards -------
   document.querySelectorAll('.card[data-id]').forEach(card=>{
     const inA = card.querySelector('.in-adultos');
     const inN = card.querySelector('.in-ninos');
-    if (inA && $adultSel) inA.value = parseInt($adultSel.value ?? '2', 10);
-    if (inN && $ninoSel)  inN.value = parseInt($ninoSel.value ?? '0', 10);
+
+    // valores iniciales desde los filtros
+    if (inA) inA.value = parseInt($adultSel?.value ?? '2', 10);
+    if (inN) inN.value = parseInt($ninoSel?.value ?? '0', 10);
+
+    // 🔒 bloquear negativos
+    preventNegativeInputs(inA, 1); // adultos mínimo 1
+    preventNegativeInputs(inN, 0); // niños mínimo 0
+
     calcCard(card);
 
     inA?.addEventListener('input', ()=>calcCard(card));
@@ -272,10 +287,11 @@
         fecha:  $fecha.value,
         adultos: A,
         ninos:   N,
-        pa, pn,
-        total: totalLinea
+        pa, pn,                 // guarda precios para recalcular sin recargar
+        total: totalLinea       // línea con total
       };
 
+      // Validar disponibilidad contra lo YA agregado + lo nuevo (por (codigo,fecha))
       const restantes = await getRestantes(item.codigo, item.fecha);
       const cart = readCart();
       const ya = cart
@@ -288,6 +304,7 @@
         return;
       }
 
+      // ✅ Consolidar por (codigo+fecha): “cada paquete cuenta como uno”
       const idx = cart.findIndex(x => x.codigo === item.codigo && x.fecha === item.fecha);
       if (idx >= 0) {
         cart[idx].adultos += item.adultos;
@@ -298,6 +315,7 @@
       }
       writeCart(cart);
 
+      // feedback
       const prev = btnAdd.textContent;
       btnAdd.disabled = true;
       btnAdd.textContent = 'Añadido ✓';
@@ -305,13 +323,28 @@
     });
   });
 
-  $fecha?.addEventListener('change', applyFilters);
-  $apply?.addEventListener('click', applyFilters);
-  $citySel?.addEventListener('change', applyFilters); // 🆕
+  $fecha?.addEventListener('change', ()=>{
+    if ($fecha.value < $fecha.min) $fecha.value = $fecha.min;
+    document.querySelectorAll('.card[data-id]').forEach(calcCard);
+  });
 
-  // inicializa badge + mini-cart al cargar + aplica filtros por defecto
+  $apply?.addEventListener('click', ()=>{
+    if ($fecha.value < $fecha.min) $fecha.value = $fecha.min;
+    document.querySelectorAll('.card[data-id]').forEach(card=>{
+      const inA = card.querySelector('.in-adultos');
+      const inN = card.querySelector('.in-ninos');
+      if (inA) inA.value = parseInt($adultSel?.value ?? '2', 10);
+      if (inN) inN.value = parseInt($ninoSel?.value ?? '0', 10);
+      calcCard(card);
+    });
+    applyCityFilter();
+  });
+
+  $citySel?.addEventListener('change', applyCityFilter);
+
+  // inicializa badge + mini-cart al cargar y aplica filtro de ciudad
   const init = readCart();
-  writeCart(init);
-  applyFilters();
+  writeCart(init); // escribe para disparar el evento y actualizar UI
+  applyCityFilter();
 })();
 </script>
