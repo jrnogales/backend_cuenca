@@ -1,190 +1,207 @@
 <% layout('partials/layout') %>
 
-<h2 style="text-align:center; margin-bottom:24px;">
+<h2 style="text-align:center; margin-bottom:16px;">
   Completa tus datos para registrarte.
 </h2>
 
-<form id="register-form" method="POST" action="/register"
-      style="max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:16px;">
+<form id="register-form" method="POST" action="/register" novalidate
+      style="max-width:600px; margin:0 auto; display:flex; flex-direction:column; gap:16px;">
 
-  <!-- NOMBRE -->
-  <div>
+  <!-- Nombre -->
+  <div class="field-group">
     <label for="nombre">Nombre</label>
-    <input id="nombre" name="nombre" type="text"
-           placeholder="Nombre"
-           autocomplete="given-name"
-           style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;">
-    <small id="error-nombre" style="color:#dc2626;display:none;">Ingrese su nombre.</small>
+    <input id="nombre" name="nombre" type="text" required minlength="1" autocomplete="given-name">
+    <span class="error" id="err_nombre"></span>
   </div>
 
-  <!-- APELLIDO -->
-  <div>
+  <!-- Apellido -->
+  <div class="field-group">
     <label for="apellido">Apellido</label>
-    <input id="apellido" name="apellido" type="text"
-           placeholder="Apellido"
-           autocomplete="family-name"
-           style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;">
-    <small id="error-apellido" style="color:#dc2626;display:none;">Ingrese su apellido.</small>
+    <input id="apellido" name="apellido" type="text" required minlength="1" autocomplete="family-name">
+    <span class="error" id="err_apellido"></span>
   </div>
 
-  <!-- CÉDULA (10 dígitos) -->
-  <div>
+  <!-- Cédula -->
+  <div class="field-group">
     <label for="cedula">Cédula</label>
-    <input id="cedula" name="cedula" type="text"
-           inputmode="numeric" maxlength="10"
-           placeholder="10 dígitos"
-           style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;">
-    <!-- ya NO hay texto fijo debajo, solo error en tiempo real -->
-    <small id="error-cedula" style="color:#dc2626;display:none;">Cédula inválida.</small>
+    <input id="cedula" name="cedula"
+           type="text"
+           inputmode="numeric"
+           maxlength="10"
+           minlength="10"
+           required>
+    <span class="error" id="err_cedula"></span>
   </div>
 
-  <!-- EMAIL -->
-  <div>
+  <!-- Email -->
+  <div class="field-group">
     <label for="email">Email</label>
-    <input id="email" name="email" type="email"
-           placeholder="ej. jordi@gmail.com"
-           autocomplete="email"
-           style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;">
-    <small id="error-email" style="color:#dc2626;display:none;">
-      Ingrese un email válido (ej. jordi@gmail.com).
-    </small>
+    <input id="email" name="email"
+           type="email"
+           required
+           autocomplete="email">
+    <span class="error" id="err_email"></span>
   </div>
 
-  <!-- TELÉFONO -->
-  <div>
+  <!-- Teléfono -->
+  <div class="field-group">
     <label for="telefono">Teléfono</label>
-    <input id="telefono" name="telefono" type="text"
-           inputmode="numeric" maxlength="10"
-           placeholder="10 dígitos"
-           autocomplete="tel"
-           style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;">
-    <small id="error-telefono" style="color:#dc2626;display:none;">
-      Teléfono inválido (debe tener 10 dígitos).
-    </small>
+    <input id="telefono" name="telefono"
+           type="text"
+           inputmode="numeric"
+           maxlength="10"
+           minlength="10"
+           required>
+    <span class="error" id="err_telefono"></span>
   </div>
 
-  <!-- CONTRASEÑA -->
-  <div>
+  <!-- Contraseña -->
+  <div class="field-group">
     <label for="password">Contraseña</label>
-    <input id="password" name="password" type="password"
-           placeholder="Mínimo 6 caracteres"
-           autocomplete="new-password"
-           style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;">
-    <small id="error-password" style="color:#dc2626;display:none;">
-      La contraseña debe tener al menos 6 caracteres.
-    </small>
+    <input id="password" name="password"
+           type="password"
+           minlength="6"
+           required>
+    <span class="error" id="err_password"></span>
   </div>
 
-  <button id="btn-registrar" class="btn-primary"
-          style="width:100%;margin-top:16px;">
+  <button type="submit" class="btn-primary" id="btn-registrar">
     Registrar
   </button>
 </form>
 
+<style>
+  .field-group label{
+    display:block;
+    font-weight:600;
+    margin-bottom:4px;
+  }
+  .field-group input{
+    width:100%;
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid #d1d5db;
+    font-size:14px;
+  }
+  .field-group input:focus{
+    outline:none;
+    border-color:#2563eb;
+    box-shadow:0 0 0 1px rgba(37,99,235,.3);
+  }
+  .error{
+    display:block;
+    font-size:12px;
+    color:#dc2626;
+    margin-top:2px;
+    min-height:16px; /* espacio reservado para que no “salte” el layout */
+  }
+</style>
+
 <script>
   (function () {
-    const form   = document.getElementById('register-form');
-    const nombre = document.getElementById('nombre');
-    const ape    = document.getElementById('apellido');
-    const ced    = document.getElementById('cedula');
-    const email  = document.getElementById('email');
-    const tel    = document.getElementById('telefono');
-    const pass   = document.getElementById('password');
-    const btn    = document.getElementById('btn-registrar');
+    const form      = document.getElementById('register-form');
+    const btn       = document.getElementById('btn-registrar');
 
-    const errNombre  = document.getElementById('error-nombre');
-    const errApe     = document.getElementById('error-apellido');
-    const errCed     = document.getElementById('error-cedula');
-    const errEmail   = document.getElementById('error-email');
-    const errTel     = document.getElementById('error-telefono');
-    const errPass    = document.getElementById('error-password');
+    const nombre    = document.getElementById('nombre');
+    const apellido  = document.getElementById('apellido');
+    const cedula    = document.getElementById('cedula');
+    const email     = document.getElementById('email');
+    const telefono  = document.getElementById('telefono');
+    const password  = document.getElementById('password');
 
-    function showError(el, errEl, ok) {
-      if (!ok) {
-        errEl.style.display = 'block';
-        el.style.borderColor = '#dc2626';
-      } else {
-        errEl.style.display = 'none';
-        el.style.borderColor = '#d1d5db';
+    const errNombre   = document.getElementById('err_nombre');
+    const errApellido = document.getElementById('err_apellido');
+    const errCedula   = document.getElementById('err_cedula');
+    const errEmail    = document.getElementById('err_email');
+    const errTelefono = document.getElementById('err_telefono');
+    const errPassword = document.getElementById('err_password');
+
+    // Email con TLD mínimo de 2 letras (ej: .com, .ec, .org)
+    const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[A-Za-z]{2,}$/;
+
+    function validarNombre() {
+      if (!nombre.value.trim()) {
+        errNombre.textContent = 'Ingresa tu nombre';
+        return false;
       }
+      errNombre.textContent = '';
+      return true;
     }
 
-    function validateNombre() {
-      const ok = nombre.value.trim().length >= 1;
-      showError(nombre, errNombre, ok);
-      return ok;
+    function validarApellido() {
+      if (!apellido.value.trim()) {
+        errApellido.textContent = 'Ingresa tu apellido';
+        return false;
+      }
+      errApellido.textContent = '';
+      return true;
     }
 
-    function validateApellido() {
-      const ok = ape.value.trim().length >= 1;
-      showError(ape, errApe, ok);
-      return ok;
+    function validarCedula() {
+      const v = cedula.value.trim();
+      if (!/^\d{10}$/.test(v)) {
+        errCedula.textContent = 'La cédula debe tener 10 números';
+        return false;
+      }
+      errCedula.textContent = '';
+      return true;
     }
 
-    function validateCedula() {
-      const v = ced.value.trim();
-      const ok = /^\d{10}$/.test(v);
-      showError(ced, errCed, ok);
-      return ok;
-    }
-
-    function validateEmail() {
+    function validarEmail() {
       const v = email.value.trim();
-      const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
-      showError(email, errEmail, ok);
-      return ok;
+      if (!EMAIL_RE.test(v)) {
+        errEmail.textContent = 'Ingresa un email válido (ej: nombre@dominio.com)';
+        return false;
+      }
+      errEmail.textContent = '';
+      return true;
     }
 
-    function validateTelefono() {
-      const v = tel.value.trim();
-      const ok = /^\d{10}$/.test(v);
-      showError(tel, errTel, ok);
-      return ok;
+    function validarTelefono() {
+      const v = telefono.value.trim();
+      if (!/^\d{10}$/.test(v)) {
+        errTelefono.textContent = 'El teléfono debe tener 10 números';
+        return false;
+      }
+      errTelefono.textContent = '';
+      return true;
     }
 
-    function validatePassword() {
-      const v = pass.value;
-      const ok = v.length >= 6;
-      showError(pass, errPass, ok);
-      return ok;
+    function validarPassword() {
+      const v = password.value;
+      if (v.length < 6) {
+        errPassword.textContent = 'La contraseña debe tener al menos 6 caracteres';
+        return false;
+      }
+      errPassword.textContent = '';
+      return true;
     }
 
     // Validación en tiempo real
-    nombre.addEventListener('input', validateNombre);
-    ape.addEventListener('input', validateApellido);
-    ced.addEventListener('input', function (e) {
-      // solo números
-      this.value = this.value.replace(/\D/g, '').slice(0, 10);
-      validateCedula();
-    });
-    tel.addEventListener('input', function () {
-      this.value = this.value.replace(/\D/g, '').slice(0, 10);
-      validateTelefono();
-    });
-    email.addEventListener('input', validateEmail);
-    pass.addEventListener('input', validatePassword);
+    nombre.addEventListener('input',   validarNombre);
+    apellido.addEventListener('input', validarApellido);
+    cedula.addEventListener('input',   validarCedula);
+    email.addEventListener('input',    validarEmail);
+    telefono.addEventListener('input', validarTelefono);
+    password.addEventListener('input', validarPassword);
 
-    // Validar todo al enviar
-    form.addEventListener('submit', function (e) {
-      const v1 = validateNombre();
-      const v2 = validateApellido();
-      const v3 = validateCedula();
-      const v4 = validateEmail();
-      const v5 = validateTelefono();
-      const v6 = validatePassword();
+    form.addEventListener('submit', (e) => {
+      const ok =
+        validarNombre() &&
+        validarApellido() &&
+        validarCedula() &&
+        validarEmail() &&
+        validarTelefono() &&
+        validarPassword();
 
-      if (!(v1 && v2 && v3 && v4 && v5 && v6)) {
+      if (!ok) {
         e.preventDefault();
-        // enfocar el primer campo con error
-        const firstError = [nombre, ape, ced, email, tel, pass]
-          .find(el => el.style.borderColor === 'rgb(220, 38, 38)' || el.style.borderColor === '#dc2626');
-        if (firstError) firstError.focus();
-        return false;
+        return;
       }
 
-      // evitar doble click en "Registrar"
+      // Evita doble click solo en este botón
       btn.disabled = true;
-      btn.textContent = 'Registrando...';
+      btn.textContent = 'Enviando…';
     });
   })();
 </script>
