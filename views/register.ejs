@@ -232,15 +232,18 @@
   }
 
   function validateEmail() {
-    const v = email.value.trim();
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!regex.test(v)) {
-      setError(email, emailError, 'Ingresa un correo válido (ej. jordi@gmail.com).');
-      return false;
-    }
-    setError(email, emailError, '');
-    return true;
+  const v = email.value.trim();
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!regex.test(v)) {
+    setError(email, emailError, 'Ingresa un correo válido (ej. jordi@gmail.com)');
+    return false;
   }
+
+  setError(email, emailError, '');
+  return true;
+}
+
 
   function validateTelefono() {
     const v = telefono.value.trim();
