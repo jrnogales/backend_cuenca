@@ -43,16 +43,15 @@ export async function crearFacturaDesdeReservas(reservaIds, metodoPago = 'WEB') 
 
     const usuarioId = reservas[0].usuario_id; // asumimos mismo usuario
 
-    // 2) Total general de las reservas
-    let total = 0;
+    // 2) Subtotal = suma de total_usd (que es neto sin IVA)
+    let subtotal = 0;
     for (const r of reservas) {
-      total += Number(r.total_usd);
+      subtotal += Number(r.total_usd || 0);
     }
 
-    // --- AJUSTA ESTE IVA si usas otro ---
     const IVA_RATE = 0.15; // 15%
-    const subtotal = +(total / (1 + IVA_RATE)).toFixed(2);
-    const iva = +(total - subtotal).toFixed(2);
+    const iva   = +(subtotal * IVA_RATE).toFixed(2);
+    const total = +(subtotal + iva).toFixed(2);
 
     // 3) Generar código de factura
     const today = new Date();

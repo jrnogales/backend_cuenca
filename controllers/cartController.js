@@ -8,7 +8,12 @@ import {
   clearCart,
   updateItem
 } from '../models/Carrito.js';
-import { crearFactura } from '../models/Factura.js'; // ← NUEVO
+
+// 🔴 OJO: YA NO usamos crearFactura aquí
+// import { crearFactura } from '../models/Factura.js';
+
+// ✅ NUEVO: usamos el agrupador de facturas
+import { crearFacturaDesdeReservas } from './facturasController.js';
 
 /* ============== Utils ============== */
 function calcTotals(items) {
@@ -198,10 +203,16 @@ export async function removeFromCart(req, res) {
 }
 
 /**
- * POST /cart/checkout – procesa TODO el carrito con bloqueo de disponibilidad
+ * POST /cart/checkout – procesa TODO el carrito
+ * - Crea varias reservas (una por ítem)
+ * - Actualiza disponibilidad
+ * - Limpia carrito
+ * - ✅ Crea UNA sola factura para TODAS las reservas del carrito
  */
 export async function checkoutCart(req, res) {
   const client = await pool.connect();
+  let committed = false;
+
   try {
     const usuarioId = req.user?.id;
     if (!usuarioId) {
@@ -218,12 +229,12 @@ export async function checkoutCart(req, res) {
     console.log('🧾 [checkout] items', items);
 
     await client.query('BEGIN');
-    let totalLote = 0;
 
-    // 🔢 Acumuladores para el comprobante
+    let totalNeto = 0;       // suma sin IVA
     let sumAdultos = 0;
-    let sumNinos = 0;
-    const fechas = new Set();
+    let sumNinos   = 0;
+    const fechas   = new Set();
+    const reservaIds = [];   // 👈 para la factura única
 
     for (const it of items) {
       const { paquete_id, fecha, adultos, ninos } = it;
@@ -267,54 +278,27 @@ export async function checkoutCart(req, res) {
 
       const pRes = await client.query('SELECT * FROM paquetes WHERE id=$1', [paquete_id]);
       const p = pRes.rows[0];
-      const total = (Number(adultos) * Number(p.precio_adulto || 0)) +
-                    (Number(ninos)   * Number(p.precio_nino   || 0));
-      totalLote += total;
+
+      const totalItem =
+        (Number(adultos) * Number(p.precio_adulto || 0)) +
+        (Number(ninos)   * Number(p.precio_nino   || 0));
+
+      totalNeto += totalItem;
 
       const bookingId =
         'RES-' + new Date().toISOString().slice(0,10).replace(/-/g,'') +
         '-'    + Math.random().toString(36).slice(2,6).toUpperCase();
 
-      // ⬇️ MODIFICADO: pedimos el id de la reserva para facturar
       const resReserva = await client.query(
         `INSERT INTO reservas
-           (codigo_reserva, paquete_id, usuario_id, fecha_viaje, adultos, ninos, total_usd, origen)
+           (codigo_reserva, paquete_id, usuario_id, fecha_viaje,
+            adultos, ninos, total_usd, origen)
          VALUES ($1,$2,$3,$4,$5,$6,$7,'CART')
          RETURNING id`,
-        [bookingId, paquete_id, usuarioId, fecha, adultos, ninos, total]
+        [bookingId, paquete_id, usuarioId, fecha, adultos, ninos, totalItem]
       );
       const reservaId = resReserva.rows[0].id;
-
-      // 🔖 FACTURA por cada reserva del carrito (MISMA transacción)
-      const lineas = [];
-      const titulo = p?.titulo || 'Paquete';
-      if (Number(adultos) > 0) {
-        lineas.push({
-          descripcion: `${titulo} - Adultos`,
-          cantidad: Number(adultos),
-          precio_unitario: Number(p.precio_adulto || 0)
-        });
-      }
-      if (Number(ninos) > 0) {
-        lineas.push({
-          descripcion: `${titulo} - Niños`,
-          cantidad: Number(ninos),
-          precio_unitario: Number(p.precio_nino || 0)
-        });
-      }
-      // Por seguridad, si no hay líneas, crea 1 línea con el total
-      if (lineas.length === 0) {
-        lineas.push({
-          descripcion: titulo,
-          cantidad: 1,
-          precio_unitario: Number(total || 0)
-        });
-      }
-      await crearFactura(client, {
-        reservaId,
-        metodoPago: 'WEB',
-        lineas
-      });
+      reservaIds.push(reservaId); // 👈 acumulamos para la factura múltiple
 
       await client.query(
         `UPDATE disponibilidad
@@ -324,29 +308,39 @@ export async function checkoutCart(req, res) {
       );
     }
 
+    // Limpia carrito del usuario
     await client.query(`DELETE FROM carrito WHERE usuario_id = $1`, [usuarioId]);
+
     await client.query('COMMIT');
+    committed = true;
 
-    const iva = +(totalLote * 0.15).toFixed(2);
-    const totalConIva = +(totalLote + iva).toFixed(2);
+    // 🧾 FACTURA ÚNICA para todas las reservas recién creadas
+    const facturaInfo = await crearFacturaDesdeReservas(reservaIds, 'WEB');
 
-    // 🗓️ Fecha de resumen: única fecha o “Varias fechas”
     const fechaResumen = (fechas.size === 1) ? [...fechas][0] : 'Varias fechas';
+    console.log('✅ [checkout] OK', {
+      totalNeto,
+      facturaTotal: facturaInfo.total,
+      sumAdultos,
+      sumNinos,
+      fechaResumen,
+      codigoFactura: facturaInfo.codigoFactura
+    });
 
-    console.log('✅ [checkout] OK total sin IVA / con IVA', { totalLote, totalConIva, sumAdultos, sumNinos, fechaResumen });
-
-    // Ahora sí mostramos adultos/niños reales
+    // Usamos el total de la factura (ya con IVA)
     res.render('comprobante', {
       title: 'Compra confirmada',
-      codigo: 'LOTE-' + Date.now().toString(36).toUpperCase(),
+      codigo: facturaInfo.codigoFactura, // puedes usar LOTE-... si prefieres
       paquete: { titulo: 'Múltiples paquetes (carrito)' },
       fecha: fechaResumen,
       adultos: sumAdultos,
       ninos: sumNinos,
-      total: totalConIva
+      total: facturaInfo.total
     });
   } catch (e) {
-    await client.query('ROLLBACK');
+    if (!committed) {
+      try { await client.query('ROLLBACK'); } catch {}
+    }
     console.error('❌ [checkout] error', e);
     res.status(400).send('No se pudo completar el checkout: ' + e.message);
   } finally {
