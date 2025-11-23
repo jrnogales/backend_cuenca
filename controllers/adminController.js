@@ -76,30 +76,53 @@ export async function showFactura(req, res) {
 /* ================= Paquetes ================= */
 export async function listPaquetes(req, res) {
   const { rows } = await pool.query(
-    `SELECT id, codigo, titulo, descripcion, imagen, precio_adulto, precio_nino, stock
-     FROM paquetes ORDER BY id DESC`
+    `SELECT id, codigo, titulo, descripcion, imagen,
+            precio_adulto, precio_nino
+       FROM paquetes
+      ORDER BY id DESC`
   );
   res.render('admin/paquetes', { title: 'Paquetes', paquetes: rows });
 }
 
 export async function savePaquete(req, res) {
-  const { id, codigo, titulo, descripcion, imagen, precio_adulto, precio_nino, stock } = req.body;
-  if (id) {
-    await pool.query(
-      `UPDATE paquetes SET codigo=$1, titulo=$2, descripcion=$3, imagen=$4,
-              precio_adulto=$5, precio_nino=$6, stock=$7
-       WHERE id=$8`,
-      [codigo, titulo, descripcion, imagen, precio_adulto, precio_nino, stock, id]
-    );
-  } else {
-    await pool.query(
-      `INSERT INTO paquetes (codigo, titulo, descripcion, imagen, precio_adulto, precio_nino, stock)
-       VALUES ($1,$2,$3,$4,$5,$6,$7)`,
-      [codigo, titulo, descripcion, imagen, precio_adulto, precio_nino, stock]
-    );
+  try {
+    const { id, codigo, titulo, descripcion, imagen, precio_adulto, precio_nino } = req.body;
+
+    // 🔒 Validación: nunca permitir números negativos
+    const precioAdulto = Math.max(0, Number(precio_adulto || 0));
+    const precioNino   = Math.max(0, Number(precio_nino   || 0));
+
+    if (id) {
+      // EDITAR
+      await pool.query(
+        `UPDATE paquetes
+            SET codigo=$1,
+                titulo=$2,
+                descripcion=$3,
+                imagen=$4,
+                precio_adulto=$5,
+                precio_nino=$6
+          WHERE id=$7`,
+        [codigo, titulo, descripcion, imagen, precioAdulto, precioNino, id]
+      );
+    } else {
+      // NUEVO — stock automático, ya NO se usa
+      await pool.query(
+        `INSERT INTO paquetes
+           (codigo, titulo, descripcion, imagen,
+            precio_adulto, precio_nino, stock)
+         VALUES ($1,$2,$3,$4,$5,$6,30)`,
+        [codigo, titulo, descripcion, imagen, precioAdulto, precioNino]
+      );
+    }
+
+    res.redirect('/admin/paquetes');
+  } catch (e) {
+    console.error(e);
+    res.status(500).send('No se pudo guardar el paquete: ' + e.message);
   }
-  res.redirect('/admin/paquetes');
 }
+
 
 /* ============== Disponibilidad (por día) ============== */
 export async function listDisponibilidad(req, res) {
