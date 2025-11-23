@@ -1,87 +1,190 @@
 <% layout('partials/layout') %>
 
-<div class="auth-page">
-  <div class="auth-card" style="max-width:640px;">
-    <h2>Crear cuenta</h2>
-    <p class="sub">Completa tus datos para registrarte.</p>
+<h2 style="text-align:center; margin-bottom:24px;">
+  Completa tus datos para registrarte.
+</h2>
 
-    <% if (typeof error === 'string' && error) { %>
-      <div class="alert"><%= error %></div>
-    <% } %>
+<form id="register-form" method="POST" action="/register"
+      style="max-width:600px;margin:0 auto;display:flex;flex-direction:column;gap:16px;">
 
-    <form method="POST" action="/register" id="f-register" novalidate>
-      <label>Nombre</label>
-      <input type="text" name="nombre" required value="<%= nombre || '' %>">
-
-      <label>Apellido</label>
-      <input type="text" name="apellido" required value="<%= apellido || '' %>">
-
-      <label>Cédula</label>
-      <input
-        id="ci"
-        type="text"
-        name="cedula"
-        required
-        inputmode="numeric"
-        autocomplete="off"
-        minlength="10"
-        maxlength="10"
-        pattern="[0-9]{10}"
-        placeholder="10 dígitos"
-        value="<%= cedula || '' %>"
-      >
-      <small class="muted" id="ci-help">Debe tener 10 dígitos numéricos.</small>
-
-      <label>Email</label>
-      <input type="email" name="email" required value="<%= email || '' %>">
-
-      <label>Teléfono</label>
-      <input type="tel" name="telefono" inputmode="tel" value="<%= telefono || '' %>">
-
-      <label>Contraseña</label>
-      <input type="password" name="password" required minlength="6">
-
-      <button type="submit" class="btn-primary" style="width:100%;margin-top:12px;">Registrar</button>
-    </form>
-
-    <div class="auth-links">
-      ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
-    </div>
+  <!-- NOMBRE -->
+  <div>
+    <label for="nombre">Nombre</label>
+    <input id="nombre" name="nombre" type="text"
+           placeholder="Nombre"
+           autocomplete="given-name"
+           style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;">
+    <small id="error-nombre" style="color:#dc2626;display:none;">Ingrese su nombre.</small>
   </div>
-</div>
+
+  <!-- APELLIDO -->
+  <div>
+    <label for="apellido">Apellido</label>
+    <input id="apellido" name="apellido" type="text"
+           placeholder="Apellido"
+           autocomplete="family-name"
+           style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;">
+    <small id="error-apellido" style="color:#dc2626;display:none;">Ingrese su apellido.</small>
+  </div>
+
+  <!-- CÉDULA (10 dígitos) -->
+  <div>
+    <label for="cedula">Cédula</label>
+    <input id="cedula" name="cedula" type="text"
+           inputmode="numeric" maxlength="10"
+           placeholder="10 dígitos"
+           style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;">
+    <!-- ya NO hay texto fijo debajo, solo error en tiempo real -->
+    <small id="error-cedula" style="color:#dc2626;display:none;">Cédula inválida.</small>
+  </div>
+
+  <!-- EMAIL -->
+  <div>
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email"
+           placeholder="ej. jordi@gmail.com"
+           autocomplete="email"
+           style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;">
+    <small id="error-email" style="color:#dc2626;display:none;">
+      Ingrese un email válido (ej. jordi@gmail.com).
+    </small>
+  </div>
+
+  <!-- TELÉFONO -->
+  <div>
+    <label for="telefono">Teléfono</label>
+    <input id="telefono" name="telefono" type="text"
+           inputmode="numeric" maxlength="10"
+           placeholder="10 dígitos"
+           autocomplete="tel"
+           style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;">
+    <small id="error-telefono" style="color:#dc2626;display:none;">
+      Teléfono inválido (debe tener 10 dígitos).
+    </small>
+  </div>
+
+  <!-- CONTRASEÑA -->
+  <div>
+    <label for="password">Contraseña</label>
+    <input id="password" name="password" type="password"
+           placeholder="Mínimo 6 caracteres"
+           autocomplete="new-password"
+           style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #d1d5db;">
+    <small id="error-password" style="color:#dc2626;display:none;">
+      La contraseña debe tener al menos 6 caracteres.
+    </small>
+  </div>
+
+  <button id="btn-registrar" class="btn-primary"
+          style="width:100%;margin-top:16px;">
+    Registrar
+  </button>
+</form>
 
 <script>
-// ===== Validación RELAJADA: sólo 10 dígitos =====
+  (function () {
+    const form   = document.getElementById('register-form');
+    const nombre = document.getElementById('nombre');
+    const ape    = document.getElementById('apellido');
+    const ced    = document.getElementById('cedula');
+    const email  = document.getElementById('email');
+    const tel    = document.getElementById('telefono');
+    const pass   = document.getElementById('password');
+    const btn    = document.getElementById('btn-registrar');
 
-// Mantén solo números y limita a 10
-const ciInput = document.getElementById('ci');
-const ciHelp  = document.getElementById('ci-help');
+    const errNombre  = document.getElementById('error-nombre');
+    const errApe     = document.getElementById('error-apellido');
+    const errCed     = document.getElementById('error-cedula');
+    const errEmail   = document.getElementById('error-email');
+    const errTel     = document.getElementById('error-telefono');
+    const errPass    = document.getElementById('error-password');
 
-ciInput?.addEventListener('input', () => {
-  // eliminar cualquier caracter no numérico
-  ciInput.value = (ciInput.value || '').replace(/\D+/g, '').slice(0, 10);
+    function showError(el, errEl, ok) {
+      if (!ok) {
+        errEl.style.display = 'block';
+        el.style.borderColor = '#dc2626';
+      } else {
+        errEl.style.display = 'none';
+        el.style.borderColor = '#d1d5db';
+      }
+    }
 
-  // feedback simple (sin bloquear)
-  if (/^\d{10}$/.test(ciInput.value)) {
-    ciInput.classList.remove('is-invalid');
-    ciInput.classList.add('is-valid');
-    if (ciHelp) ciHelp.textContent = 'Formato correcto: 10 dígitos.';
-  } else {
-    ciInput.classList.remove('is-valid');
-    ciInput.classList.add('is-invalid');
-    if (ciHelp) ciHelp.textContent = 'Debe tener exactamente 10 dígitos numéricos.';
-  }
-});
+    function validateNombre() {
+      const ok = nombre.value.trim().length >= 1;
+      showError(nombre, errNombre, ok);
+      return ok;
+    }
 
-// Enviar sólo si hay 10 dígitos
-document.getElementById('f-register')?.addEventListener('submit', (e) => {
-  const raw = (ciInput?.value || '').trim();
-  if (!/^\d{10}$/.test(raw)) {
-    e.preventDefault();
-    alert('Ingresa una cédula con exactamente 10 dígitos numéricos.');
-    ciInput?.focus();
-  }
-});
+    function validateApellido() {
+      const ok = ape.value.trim().length >= 1;
+      showError(ape, errApe, ok);
+      return ok;
+    }
 
+    function validateCedula() {
+      const v = ced.value.trim();
+      const ok = /^\d{10}$/.test(v);
+      showError(ced, errCed, ok);
+      return ok;
+    }
 
+    function validateEmail() {
+      const v = email.value.trim();
+      const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+      showError(email, errEmail, ok);
+      return ok;
+    }
+
+    function validateTelefono() {
+      const v = tel.value.trim();
+      const ok = /^\d{10}$/.test(v);
+      showError(tel, errTel, ok);
+      return ok;
+    }
+
+    function validatePassword() {
+      const v = pass.value;
+      const ok = v.length >= 6;
+      showError(pass, errPass, ok);
+      return ok;
+    }
+
+    // Validación en tiempo real
+    nombre.addEventListener('input', validateNombre);
+    ape.addEventListener('input', validateApellido);
+    ced.addEventListener('input', function (e) {
+      // solo números
+      this.value = this.value.replace(/\D/g, '').slice(0, 10);
+      validateCedula();
+    });
+    tel.addEventListener('input', function () {
+      this.value = this.value.replace(/\D/g, '').slice(0, 10);
+      validateTelefono();
+    });
+    email.addEventListener('input', validateEmail);
+    pass.addEventListener('input', validatePassword);
+
+    // Validar todo al enviar
+    form.addEventListener('submit', function (e) {
+      const v1 = validateNombre();
+      const v2 = validateApellido();
+      const v3 = validateCedula();
+      const v4 = validateEmail();
+      const v5 = validateTelefono();
+      const v6 = validatePassword();
+
+      if (!(v1 && v2 && v3 && v4 && v5 && v6)) {
+        e.preventDefault();
+        // enfocar el primer campo con error
+        const firstError = [nombre, ape, ced, email, tel, pass]
+          .find(el => el.style.borderColor === 'rgb(220, 38, 38)' || el.style.borderColor === '#dc2626');
+        if (firstError) firstError.focus();
+        return false;
+      }
+
+      // evitar doble click en "Registrar"
+      btn.disabled = true;
+      btn.textContent = 'Registrando...';
+    });
+  })();
 </script>
