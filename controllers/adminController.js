@@ -147,7 +147,7 @@ export async function deletePaquete(req, res) {
 /* ================= Usuarios ================= */
 export async function listUsuarios(req, res) {
   const { rows } = await pool.query(
-    `SELECT id, nombre, apellido, email, rol, cedula, telefono
+    `SELECT id, nombre, apellido, email, rol, cedula, telefono, estado
      FROM usuarios ORDER BY id DESC`
   );
   res.render('admin/usuarios', { title: 'Usuarios', usuarios: rows });
@@ -155,7 +155,12 @@ export async function listUsuarios(req, res) {
 
 export async function updateUsuarioRol(req, res) {
   const { id } = req.params;
-  const { rol } = req.body;
-  await pool.query(`UPDATE usuarios SET rol=$1 WHERE id=$2`, [rol, id]);
+  const { rol, estado } = req.body;
+
+  await pool.query(
+    `UPDATE usuarios SET rol = $1, estado = $2 WHERE id = $3`,
+    [rol, estado, id]
+  );
+
   res.redirect('/admin/usuarios');
 }
