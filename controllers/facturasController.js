@@ -43,7 +43,7 @@ export async function crearFacturaDesdeReservas(reservaIds, metodoPago = 'WEB') 
 
     const usuarioId = reservas[0].usuario_id; // asumimos mismo usuario
 
-    // 2) Subtotal = suma de total_usd (que es neto sin IVA)
+    // 2) Subtotal = suma de total_usd (neto sin IVA)
     let subtotal = 0;
     for (const r of reservas) {
       subtotal += Number(r.total_usd || 0);
@@ -81,20 +81,20 @@ export async function crearFacturaDesdeReservas(reservaIds, metodoPago = 'WEB') 
     for (const r of reservas) {
       // Adultos
       if (r.adultos > 0 && r.precio_adulto != null) {
+        // totalLinea solo informativo, la BD calcula total_linea
         const totalLinea = +(r.adultos * Number(r.precio_adulto)).toFixed(2);
         await client.query(
           `
           INSERT INTO detalle_factura
-            (factura_id, descripcion, cantidad, precio_unitario, total_linea)
+            (factura_id, descripcion, cantidad, precio_unitario)
           VALUES
-            ($1, $2, $3, $4, $5)
+            ($1, $2, $3, $4)
           `,
           [
             facturaId,
             `${r.titulo} - Adultos (Reserva ${r.codigo_reserva})`,
             r.adultos,
-            r.precio_adulto,
-            totalLinea
+            r.precio_adulto
           ]
         );
       }
@@ -105,16 +105,15 @@ export async function crearFacturaDesdeReservas(reservaIds, metodoPago = 'WEB') 
         await client.query(
           `
           INSERT INTO detalle_factura
-            (factura_id, descripcion, cantidad, precio_unitario, total_linea)
+            (factura_id, descripcion, cantidad, precio_unitario)
           VALUES
-            ($1, $2, $3, $4, $5)
+            ($1, $2, $3, $4)
           `,
           [
             facturaId,
             `${r.titulo} - Niños (Reserva ${r.codigo_reserva})`,
             r.ninos,
-            r.precio_nino,
-            totalLinea
+            r.precio_nino
           ]
         );
       }
