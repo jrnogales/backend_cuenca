@@ -114,189 +114,208 @@
       <%- body %>
     </main>
 
-   <!-- ====== JS del layout / carrito global ====== -->
-<script>
-  const CART_KEY = 'ct_cart';
+    <!-- ====== JS del layout / carrito global ====== -->
+    <script>
+      const CART_KEY = 'ct_cart';
 
-  // API mínima global
-  function getCart() {
-    try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); }
-    catch { return []; }
-  }
-  function setCart(list) {
-    localStorage.setItem(CART_KEY, JSON.stringify(list));
-    updateCartUI();
-    // Notifica a otras vistas si quieren reaccionar
-    document.dispatchEvent(new CustomEvent('ct:cart-updated', { detail: list }));
-  }
-  function removeFromCart(idx) {
-    const list = getCart();
-    list.splice(idx, 1);
-    setCart(list);
-  }
-  function clearCart() { setCart([]); }
-
-  // Render del panel + badge
-  function updateCartUI() {
-    const list = getCart();
-    const badge = document.getElementById('cart-badge');
-    const items = document.getElementById('cart-items');
-    const sSub  = document.getElementById('cart-sub');
-    const sIva  = document.getElementById('cart-iva');
-    const sTot  = document.getElementById('cart-total');
-    if (!badge || !items) return;
-
-    // 🟢 Badge = número de ítems (1 por paquete/fecha)
-    const count = Array.isArray(list) ? list.length : 0;
-    if (count > 0) { badge.textContent = count; badge.style.display = 'inline-block'; }
-    else { badge.style.display = 'none'; }
-
-    // Render items
-    items.innerHTML = '';
-    let subtotal = 0;
-    (list || []).forEach((it, idx) => {
-      const pa = Number(it.pa || 0);
-      const pn = Number(it.pn || 0);
-      // usa total guardado si existe; si no, calcula
-      const line = (typeof it.total === 'number')
-        ? Number(it.total)
-        : (Number(it.adultos||0) * pa) + (Number(it.ninos||0) * pn);
-
-      subtotal += line;
-
-      const el = document.createElement('div');
-      el.className = 'cart-item';
-      el.innerHTML = `
-        <img src="${it.img || ''}" alt="">
-        <div>
-          <div style="font-weight:600">${it.titulo || it.codigo || 'Paquete'}</div>
-          <div style="font-size:12px; color:#6b7280">
-            ${it.fecha || ''} · A:${Number(it.adultos||0)} · N:${Number(it.ninos||0)}
-          </div>
-          <div style="font-size:12px;">$${line.toFixed(2)}</div>
-        </div>
-        <button class="cart-remove" aria-label="Quitar" title="Quitar" data-idx="${idx}">&times;</button>
-      `;
-      items.appendChild(el);
-    });
-
-    const iva = +(subtotal * 0.15).toFixed(2);
-    const total = +(subtotal + iva).toFixed(2);
-    if (sSub) sSub.textContent = subtotal.toFixed(2);
-    if (sIva) sIva.textContent = iva.toFixed(2);
-    if (sTot) sTot.textContent = total.toFixed(2);
-
-    items.querySelectorAll('.cart-remove').forEach(b => {
-      b.addEventListener('click', () => removeFromCart(parseInt(b.dataset.idx, 10)));
-    });
-  }
-
-  // Interacciones panel + Checkout sincronizado con backend
-  (function () {
-    const btn = document.getElementById('cart-btn');
-    const panel = document.getElementById('cart-panel');
-    if (btn && panel) {
-      btn.addEventListener('click', () => {
-        panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'block' : 'none';
-      });
-      document.addEventListener('click', (e) => {
-        if (!panel.contains(e.target) && !btn.contains(e.target)) panel.style.display = 'none';
-      });
-    }
-
-    const pay = document.getElementById('cart-pay');
-
-    if (pay) {
-      pay.addEventListener('click', async () => {
+      // API mínima global
+      function getCart() {
+        try { return JSON.parse(localStorage.getItem(CART_KEY) || '[]'); }
+        catch { return []; }
+      }
+      function setCart(list) {
+        localStorage.setItem(CART_KEY, JSON.stringify(list));
+        updateCartUI();
+        // Notifica a otras vistas si quieren reaccionar
+        document.dispatchEvent(new CustomEvent('ct:cart-updated', { detail: list }));
+      }
+      function removeFromCart(idx) {
         const list = getCart();
-        if (!Array.isArray(list) || list.length === 0) {
-          alert('Tu carrito está vacío.');
-          return;
+        list.splice(idx, 1);
+        setCart(list);
+      }
+      function clearCart() { setCart([]); }
+
+      // Render del panel + badge
+      function updateCartUI() {
+        const list = getCart();
+        const badge = document.getElementById('cart-badge');
+        const items = document.getElementById('cart-items');
+        const sSub  = document.getElementById('cart-sub');
+        const sIva  = document.getElementById('cart-iva');
+        const sTot  = document.getElementById('cart-total');
+        if (!badge || !items) return;
+
+        // 🟢 Badge = número de ítems (1 por paquete/fecha)
+        const count = Array.isArray(list) ? list.length : 0;
+        if (count > 0) { badge.textContent = count; badge.style.display = 'inline-block'; }
+        else { badge.style.display = 'none'; }
+
+        // Render items
+        items.innerHTML = '';
+        let subtotal = 0;
+        (list || []).forEach((it, idx) => {
+          const pa = Number(it.pa || 0);
+          const pn = Number(it.pn || 0);
+          // usa total guardado si existe; si no, calcula
+          const line = (typeof it.total === 'number')
+            ? Number(it.total)
+            : (Number(it.adultos||0) * pa) + (Number(it.ninos||0) * pn);
+
+          subtotal += line;
+
+          const el = document.createElement('div');
+          el.className = 'cart-item';
+          el.innerHTML = `
+            <img src="${it.img || ''}" alt="">
+            <div>
+              <div style="font-weight:600">${it.titulo || it.codigo || 'Paquete'}</div>
+              <div style="font-size:12px; color:#6b7280">
+                ${it.fecha || ''} · A:${Number(it.adultos||0)} · N:${Number(it.ninos||0)}
+              </div>
+              <div style="font-size:12px;">$${line.toFixed(2)}</div>
+            </div>
+            <button class="cart-remove" aria-label="Quitar" title="Quitar" data-idx="${idx}">&times;</button>
+          `;
+          items.appendChild(el);
+        });
+
+        const iva = +(subtotal * 0.15).toFixed(2);
+        const total = +(subtotal + iva).toFixed(2);
+        if (sSub) sSub.textContent = subtotal.toFixed(2);
+        if (sIva) sIva.textContent = iva.toFixed(2);
+        if (sTot) sTot.textContent = total.toFixed(2);
+
+        items.querySelectorAll('.cart-remove').forEach(b => {
+          b.addEventListener('click', () => removeFromCart(parseInt(b.dataset.idx, 10)));
+        });
+      }
+
+      // Interacciones panel + Checkout sincronizado con backend
+      (function () {
+        const btn = document.getElementById('cart-btn');
+        const panel = document.getElementById('cart-panel');
+        if (btn && panel) {
+          btn.addEventListener('click', () => {
+            panel.style.display = (panel.style.display === 'none' || !panel.style.display) ? 'block' : 'none';
+          });
+          document.addEventListener('click', (e) => {
+            if (!panel.contains(e.target) && !btn.contains(e.target)) panel.style.display = 'none';
+          });
         }
 
-        pay.disabled = true;
-        const prevText = pay.textContent;
-        pay.textContent = 'Procesando…';
+        const pay = document.getElementById('cart-pay');
 
-        try {
-          // 1) Sincroniza cada item del localStorage al carrito del servidor
-          for (const it of list) {
-            const r = await fetch('/cart/add', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-              credentials: 'same-origin',                 // ✅ asegura envío de cookies
-              body: JSON.stringify({
-                codigo: it.codigo,
-                fecha: it.fecha,
-                adultos: it.adultos,
-                ninos: it.ninos
-              })
-            });
-
-            const ct = r.headers.get('content-type') || '';
-
-            // No logueado → backend responde 401 con redirect a /login
-            if (r.status === 401) {
-              let data = {};
-              if (ct.includes('application/json')) { try { data = await r.json(); } catch {} }
-              alert('Debes iniciar sesión para pagar.');
-              window.location.href = (data.redirect || '/login?next=/cart');
+        if (pay) {
+          pay.addEventListener('click', async () => {
+            const list = getCart();
+            if (!Array.isArray(list) || list.length === 0) {
+              alert('Tu carrito está vacío.');
               return;
             }
 
-            // ❗ Ruta inexistente o HTML (p.ej. "Cannot POST /cart/add")
-            if (!r.ok) {
-              const text = await r.text().catch(()=>'');
-              const msg = ct.includes('application/json')
-                          ? (JSON.parse(text||'{}').error || 'Error al agregar al carrito en el servidor.')
-                          : (text.includes('Cannot POST') ? 'La ruta /cart/add no está disponible en el servidor.' : (text || 'Error al agregar al carrito en el servidor.'));
-              alert(msg);
+            pay.disabled = true;
+            const prevText = pay.textContent;
+            pay.textContent = 'Procesando…';
+
+            try {
+              // 1) Sincroniza cada item del localStorage al carrito del servidor
+              for (const it of list) {
+                const r = await fetch('/cart/add', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                  credentials: 'same-origin',                 // ✅ asegura envío de cookies
+                  body: JSON.stringify({
+                    codigo: it.codigo,
+                    fecha: it.fecha,
+                    adultos: it.adultos,
+                    ninos: it.ninos
+                  })
+                });
+
+                const ct = r.headers.get('content-type') || '';
+
+                // No logueado → backend responde 401 con redirect a /login
+                if (r.status === 401) {
+                  let data = {};
+                  if (ct.includes('application/json')) { try { data = await r.json(); } catch {} }
+                  alert('Debes iniciar sesión para pagar.');
+                  window.location.href = (data.redirect || '/login?next=/cart');
+                  return;
+                }
+
+                // ❗ Ruta inexistente o HTML (p.ej. "Cannot POST /cart/add")
+                if (!r.ok) {
+                  const text = await r.text().catch(()=>'');
+                  const msg = ct.includes('application/json')
+                              ? (JSON.parse(text||'{}').error || 'Error al agregar al carrito en el servidor.')
+                              : (text.includes('Cannot POST') ? 'La ruta /cart/add no está disponible en el servidor.' : (text || 'Error al agregar al carrito en el servidor.'));
+                  alert(msg);
+                  pay.disabled = false;
+                  pay.textContent = prevText;
+                  return;
+                }
+              }
+
+              // 2) Limpia carrito local (ya persistido en BD)
+              clearCart();
+
+              // 3) Ejecuta checkout contra el servidor (lee carrito en BD)
+              const resp = await fetch('/cart/checkout', {
+                method: 'POST',
+                credentials: 'same-origin'                   // ✅ cookies
+              });
+              const ct2 = resp.headers.get('content-type') || '';
+
+              if (resp.ok) {
+                const html = await resp.text();
+                const w = window.open('', '_self');
+                w.document.write(html); w.document.close();
+              } else if (resp.status === 401) {
+                alert('Debes iniciar sesión para pagar.');
+                window.location.href = '/login?next=/cart';
+              } else {
+                const text = await resp.text().catch(()=> '');
+                const msg = ct2.includes('application/json')
+                  ? (JSON.parse(text||'{}').error || 'No se pudo completar el checkout.')
+                  : (text || 'No se pudo completar el checkout.');
+                alert(msg);
+                pay.disabled = false;
+                pay.textContent = prevText;
+              }
+            } catch (err) {
+              alert('Error de red: ' + err.message);
               pay.disabled = false;
               pay.textContent = prevText;
-              return;
             }
-          }
-
-          // 2) Limpia carrito local (ya persistido en BD)
-          clearCart();
-
-          // 3) Ejecuta checkout contra el servidor (lee carrito en BD)
-          const resp = await fetch('/cart/checkout', {
-            method: 'POST',
-            credentials: 'same-origin'                   // ✅ cookies
           });
-          const ct2 = resp.headers.get('content-type') || '';
-
-          if (resp.ok) {
-            const html = await resp.text();
-            const w = window.open('', '_self');
-            w.document.write(html); w.document.close();
-          } else if (resp.status === 401) {
-            alert('Debes iniciar sesión para pagar.');
-            window.location.href = '/login?next=/cart';
-          } else {
-            const text = await resp.text().catch(()=> '');
-            const msg = ct2.includes('application/json')
-              ? (JSON.parse(text||'{}').error || 'No se pudo completar el checkout.')
-              : (text || 'No se pudo completar el checkout.');
-            alert(msg);
-            pay.disabled = false;
-            pay.textContent = prevText;
-          }
-        } catch (err) {
-          alert('Error de red: ' + err.message);
-          pay.disabled = false;
-          pay.textContent = prevText;
         }
+
+        // Render inicial y escucha global de actualizaciones
+        updateCartUI();
+        document.addEventListener('ct:cart-updated', () => updateCartUI());
+      })();
+    </script>
+
+    <!-- 🔒 Anti doble-click global en formularios -->
+    <script>
+      document.addEventListener('submit', function (e) {
+        const form = e.target;
+        const buttons = form.querySelectorAll('button');
+
+        buttons.forEach(btn => {
+          // evita deshabilitar botones que ya estén deshabilitados
+          if (btn.disabled) return;
+          btn.disabled = true;
+
+          // guarda texto original sólo una vez
+          if (!btn.dataset.originalText) {
+            btn.dataset.originalText = btn.textContent;
+          }
+          btn.textContent = 'Procesando…';
+        });
       });
-    }
-
-    // Render inicial y escucha global de actualizaciones
-    updateCartUI();
-    document.addEventListener('ct:cart-updated', () => updateCartUI());
-  })();
-</script>
-
+    </script>
 
   </body>
 </html>
