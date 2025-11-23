@@ -24,8 +24,6 @@ router.get('/admin/facturas/:id', requireAdmin, showFactura);
 router.get('/admin/paquetes',   requireAdmin, listPaquetes);
 router.post('/admin/paquetes/save', requireAdmin, savePaquete);
 
-router.get('/admin/disponibilidad', requireAdmin, listDisponibilidad);
-router.post('/admin/disponibilidad/save', requireAdmin, upsertDisponibilidad);
 
 router.get('/admin/usuarios',   requireAdmin, listUsuarios);
 router.post('/admin/usuarios/:id/rol', requireAdmin, updateUsuarioRol);

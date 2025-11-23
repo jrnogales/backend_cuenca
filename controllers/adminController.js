@@ -143,35 +143,6 @@ export async function deletePaquete(req, res) {
 }
 
 
-/* ============== Disponibilidad (por día) ============== */
-export async function listDisponibilidad(req, res) {
-  const paquetes = (await pool.query(
-    `SELECT id, codigo, titulo FROM paquetes ORDER BY titulo`)).rows;
-
-  const disp = (await pool.query(
-    `SELECT d.id, d.paquete_id, p.titulo, d.fecha, d.cupos_totales, d.cupos_reservados
-     FROM disponibilidad d
-     JOIN paquetes p ON p.id = d.paquete_id
-     ORDER BY d.fecha DESC, p.titulo ASC
-     LIMIT 300`
-  )).rows;
-
-  res.render('admin/disponibilidad', {
-    title: 'Disponibilidad', paquetes, disp
-  });
-}
-
-export async function upsertDisponibilidad(req, res) {
-  const { paquete_id, fecha, cupos_totales } = req.body;
-  await pool.query(
-    `INSERT INTO disponibilidad (paquete_id, fecha, cupos_totales, cupos_reservados)
-     VALUES ($1, $2::date, $3::int, 0)
-     ON CONFLICT (paquete_id, fecha)
-     DO UPDATE SET cupos_totales = EXCLUDED.cupos_totales`,
-    [paquete_id, fecha, cupos_totales]
-  );
-  res.redirect('/admin/disponibilidad');
-}
 
 /* ================= Usuarios ================= */
 export async function listUsuarios(req, res) {
