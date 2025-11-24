@@ -102,7 +102,7 @@ app.use('/', authRoutes);
 app.use('/checkout', checkoutRoutes);
 app.use('/', reservasRoutes); // /mis-reservas, /reservas/:codigo/cancelar, etc.
 app.use('/', cartRoutes);
-app.use('/', adminRoutes); // <-- MONTA admin bajo /admin
+app.use('/admin', adminRoutes);
 app.use(debugRoutes);
 
 /* ---------- SOAP (para el BUS) ---------- */
