@@ -96,14 +96,15 @@ app.use('/api', (err, req, res, next) => {
     .json({ ok: false, error: err.message || 'Error interno' });
 });
 
-/* ---------- Rutas de aplicación (vistas) ---------- */
+// Rutas de aplicación (vistas)
 app.use('/', paquetesRoutes);
 app.use('/', authRoutes);
 app.use('/checkout', checkoutRoutes);
-app.use('/', reservasRoutes); // /mis-reservas, /reservas/:codigo/cancelar, etc.
+app.use('/', reservasRoutes);
 app.use('/', cartRoutes);
-app.use('/admin', adminRoutes);
+app.use('/', adminRoutes); // ✅ así, con '/'
 app.use(debugRoutes);
+
 
 /* ---------- SOAP (para el BUS) ---------- */
 attachSoap(app);

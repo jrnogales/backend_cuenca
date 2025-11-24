@@ -6,12 +6,11 @@ import {
   listReservas,
   listFacturas,
   showFactura,
-  // Gestión de paquetes
   listPaquetes,
   savePaquete,
-  // Gestión de usuarios
+  deletePaquete,
   listUsuarios,
-  updateUsuarioRol,
+  updateUsuarioRol
 } from '../controllers/adminController.js';
 
 const router = express.Router();
@@ -29,6 +28,9 @@ router.get('/admin/facturas/:id', requireAdmin, showFactura);
 // Paquetes
 router.get('/admin/paquetes', requireAdmin, listPaquetes);
 router.post('/admin/paquetes/save', requireAdmin, savePaquete);
+
+// 🔥 ESTA RUTA ES LA QUE TE FALTABA
+router.post('/admin/paquetes/delete/:id', requireAdmin, deletePaquete);
 
 // Usuarios
 router.get('/admin/usuarios', requireAdmin, listUsuarios);
