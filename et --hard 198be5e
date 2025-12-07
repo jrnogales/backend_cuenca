@@ -1,0 +1,106 @@
+* [33md5d181c[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Fix: eliminar export duplicado y habilitar cancelación admin
+* [33mbeaa7c1[m Admin: agregar cancelación de reservas + vista actualizada
+* [33m198be5e[m Fix rutas admin y server: habilitar eliminación de paquetes
+* [33m0a25a52[m Fix rutas admin y habilitar eliminación de paquetes
+* [33m5b74988[m Ajustar formulario de registro: labels arriba, sin placeholders y validación en tiempo real
+* [33m232e015[m Fix: validación universal de email en registro
+* [33mc9d6c34[m Ajustar formulario de registro: labels arriba, sin placeholders y validación en tiempo real
+* [33m244b6eb[m register: estilo profesional + validación en tiempo real sin subtítulos
+* [33m486d423[m feat(register): nueva vista profesional con validación en tiempo real
+* [33mc70af03[m Validación completa del registro + mejoras de usuarios y admin
+* [33mb0d3ab3[m Validación en tiempo real de registro + botón deshabilitado + mejoras admin usuarios + fix disponibilidad
+* [33m6380271[m Agregar estado activo/inactivo en gestión de usuarios
+* [33ma5faff1[m Fix admin routes: remove disponibilidad imports and routes
+* [33mc068a1e[m Remove admin disponibilidad section, delete routes/views/controllers and cleanup UI
+* [33m8c321c6[m Anti doble-click global para todos los formularios
+* [33m4644fa8[m Admin: agregar boton Eliminar paquete con control de dependencias
+* [33maf82094[m Validación de precios en paquetes y eliminación de campo stock
+* [33m5e0f0af[m Fix: detalle_factura sin insertar total_linea y factura única por carrito
+* [33m94d57ad[m Checkout del carrito con factura única y cálculo correcto de IVA
+* [33mb4fa371[m Revertir checkout del carrito a implementación estable
+* [33me6fa587[m Carrito unificado: checkout con 1 sola factura para múltiples reservas
+* [33m5826a68[m Actualizado index.ejs: filtro por ciudad y validación para evitar valores negativos
+* [33mcc7355b[m Añadido filtro por ciudad (Cuenca / Quito) en index.ejs
+* [33m10feaac[m Fix: logs y robustez en admin disponibilidad
+* [33m37e31f4[m Admin: listado de disponibilidad con paginación
+* [33me53c258[m Redirige usuarios normales al inicio en lugar de /mis-reservas
+* [33mcb15799[m Registro: aceptar cédula con exactamente 10 dígitos (sin módulo-10)
+* [33m2bfef02[m Simplifica validación de cédula en register.ejs (solo 10 dígitos numéricos)
+* [33mf3e615c[m Mejora visual del login, registro y diseño general con nuevo CSS
+* [33m5b64ca0[m Mejora diseño de login y registro con nuevo CSS
+* [33m3f6135c[m Exponer rutas de registro (GET/POST) en auth
+* [33m7028517[m Admin: dashboard, facturas con vista, paquetes, disponibilidad y usuarios
+* [33me1fd5bb[m Activa panel admin en /admin
+* [33m04e34fa[m Fix ruta /admin: router, middleware y montaje
+* [33m30906e8[m Auth: asegura rol en modelos y vista login usa next/error
+* [33m9a35294[m Fix(login): evitar ReferenceError cuando query no está definido en EJS
+* [33m5b910ff[m Actualiza login para redirigir admin y corrige ruta de autenticación
+* [33m498296e[m Monta panel admin en /admin y ordena rutas
+* [33m2ff28cf[m Fix admin middleware: named export requireAdmin
+* [33m697ea4f[m Fix: shim roles.js para rutas admin + server hook
+* [33m8640c3c[m Panel de administración completo (middleware, rutas, controlador, vistas y actualización en server.js)
+* [33m969972b[m Admin: vistas de dashboard, reservas y facturas
+* [33m09158cb[m C
+* [33m95124a3[m Cedula
+* [33md5ae14f[m Cancelación: anular facturas antes de cancelar la reserva (transacción)
+* [33mf5dcdba[m Fix: no insertar total_linea (columna generada) en detalle_factura
+* [33m8b03447[m Facturación: crear factura por cada reserva en /cart/checkout
+* [33mc759dcc[m Facturas: emitir
+* [33mcd257bc[m Añadir facturación automática y anulación al cancelar reserva
+* [33me5e87fa[m Facturas: emitir al crear reserva y anular al cancelar
+* [33m718e4f0[m Fix: validación de cédula compatible con navegadores y mejora UX
+* [33m788c75c[m Registro: agrega campos apellido y cédula con validación ecuatoriana
+* [33ma0fa2bc[m Mis reservas: cálculo 8h robusto (YYYY-MM-DD, ISO y Date) usando medianoche LOCAL
+* [33m89b0f4f[m Mis reservas: calcula ventana de 8h en hora LOCAL (evita parseo UTC)
+* [33md38cad3[m Comprobante: oculta cancelar en LOTE-, guía a Mis reservas; vistas robustas ante nulos
+* [33m67ee499[m Mis reservas: evita inline EJS en style; usa clases (corrige problemas del parser)
+* [33m8d5b630[m Mostrar estado en Mis reservas; soporte cancelación visible
+* [33m617c897[m Checkout: mostrar sumas reales de adultos/niños y fecha resumida en comprobante
+* [33m22dea94[m Cart API: añade /cart/add y checkout; handler front con login y errores
+* [33m1bfd2e1[m Checkout: sincroniza carrito local con backend (/cart/add) y luego /cart/checkout
+* [33m1a97f3a[m Mini-carrito funcional, disponibilidad /api y cálculo de totales
+* [33m3c3ca4d[m Fix /api 404 JSON y frontend carrito con disponibilidad
+* [33m0c06f2c[m Unifico carrito a ct_cart (fix cupos 0)
+* [33ma73c6ad[m mount /debug routes
+* [33mf9cbeec[m debug: ruta /debug/disp sin dependencias de cartController
+* [33m5119a26[m debug: endpoint /debug/disp y /debug/ping + export getDisponibilidadDia
+* [33m709d6d9[m debug: logs en disponibilidad y flujos de carrito
+* [33m13214cc[m fix: validar disponibilidad por paquete sin restar carrito
+* [33mc2b4fe5[m fix(cart): cálculo de cupos disponibles por usuario/fecha y validaciones claras
+* [33mf195773[m fix: validación simple de cupos en carrito y mejora checkout
+* [33mce48142[m Fix case sensitivity for Carrito.js import
+* [33mca30935[m Fix case sensitivity for Carrito.js import
+* [33md784b45[m Fix import Carrito + normaliza fecha en carrito
+* [33m065ea4c[m Actualizar routes/api.js
+* [33me5757d4[m Carrito: validación de cupos por fecha + flujo checkout + UI index
+* [33m4007bf0[m Validación o
+* [33mdd6390c[m Validación de sesión y cupos al añadir al carrito
+* [33m945c689[m Fix: authController sin duplicados (Illegal return)
+* [33m054a240[m AuthController limpio + server.js con rutas de carrito y reservas
+* [33m517b844[m Validación de cupos en carrito y actualización del index con alertas de disponibilidad
+* [33mc92a36b[m Validación de cupos al agregar al carrito + mensajes claros
+* [33m02e3956[m Soporte GET /cart/checkout (auto POST desde localStorage)
+* [33m8b2671c[m Fix checkout usando tabla disponibilidad real
+* [33ma791690[m Fix cálculo de totales y botón Añadir al carrito + UI de carrito
+* [33m0198948[m Carrito visual con badge + panel y checkout; fix remove
+* [33mde0491d[m Implementación del carrito de compras con totales e integración de reservas
+* [33m7eca68c[m Disponibilidad por fecha: 30 cupos/día + transacciones
+* [33m07cf789[m Fix auth middleware: single requireAuth & attachUser
+* [33mcaad80a[m Fix rutas fuera del middleware, import cancelarReserva, login con next
+* [33m95a8941[m Auth requerido para comprar + Mis reservas + Cancelación a ≥8h
+* [33m3ee0472[m Actualizo logo y SOAP integracion
+* [33md7ae829[m Add integracion.wsdl
+* [33ma79ce51[m WS Integracion: buscar/obtener/verificar/cotizar/pre/confirmar/cancelar
+* [33m9bdff50[m Agrega endpoints SOAP tipo .asmx
+* [33m024b1f6[m Corregido: campo codigo en formulario index.ejs
+* [33m56319f7[m Deploy listo para Render
+* [33m95d824b[m Actualización: validación de fechas y controladores
+* [33md290987[m Soporta URLs externas para imágenes de paquetes
+* [33mc778fdd[m UI + estilos, controllers y SOAP listos
+* [33m33d4d85[m Actualiza index.ejs y estilos; mejora visual de paquetes
+* [33m6d10c90[m Corrige import crearReserva desde checkoutController
+* [33m8392579[m Añade showCheckout y crearReserva en checkoutController
+* [33me4930c3[m Corrige import/export en rutas de checkout + estilos
+* [33m3ed2dca[m Actualiza estilos tipo Viator para las tarjetas
+* [33m3b42551[m Alinear modelos/controladores con esquema real + checkout transaccional
+* [33m8968597[m 
