@@ -152,18 +152,18 @@
         </xsd:complexType>
       </xsd:element>
 
-      <!-- ====== emitirFacturaPaquete ====== -->
+            <!-- ====== emitirFacturaPaquete ====== -->
       <xsd:element name="emitirFacturaPaqueteRequest">
         <xsd:complexType>
           <xsd:sequence>
-            <xsd:element name="bookingUserId"      type="xsd:string"/>
-            <xsd:element name="nombre"             type="xsd:string"/>
-            <xsd:element name="apellido"           type="xsd:string" minOccurs="0"/>
-            <xsd:element name="correo"             type="xsd:string"/>
+            <xsd:element name="id_reserva"         type="xsd:string"/>
+            <xsd:element name="correo"            type="xsd:string"/>
+            <xsd:element name="nombre"            type="xsd:string"/>
+            <xsd:element name="apellido"          type="xsd:string" minOccurs="0"/>
             <xsd:element name="tipo_identificacion" type="xsd:string"/>
-            <xsd:element name="identificacion"     type="xsd:string"/>
-            <xsd:element name="valor_pagado"       type="xsd:decimal"/>
-            <xsd:element name="id_transaccion"     type="xsd:string"/>
+            <xsd:element name="identificacion"    type="xsd:string"/>
+            <xsd:element name="valor"             type="xsd:decimal"/>
+            <xsd:element name="id_transaccion"    type="xsd:string"/>
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
@@ -175,6 +175,7 @@
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
+
 
       <!-- ====== crearUsuarioExterno ====== -->
       <xsd:element name="crearUsuarioExternoRequest">

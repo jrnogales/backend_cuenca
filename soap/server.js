@@ -427,93 +427,95 @@ async function emitirFacturaPaquete(args, cb) {
   const client = await pool.connect();
   try {
     const {
-      bookingUserId,
+      id_reserva,
+      correo,
       nombre,
       apellido,
-      correo,
       tipo_identificacion,
       identificacion,
-      valor_pagado,
+      valor,
       id_transaccion
     } = args || {};
 
-    const email = String(correo || '').trim();
-    const bookingId = String(bookingUserId || '').trim();
-    const firstName = String(nombre || '').trim();
-    const lastName = apellido != null ? String(apellido).trim() : null;
-    const monto = Number(valor_pagado || 0);
+    const email        = String(correo || '').trim();
+    const firstName    = String(nombre || '').trim();
+    const lastName     = apellido != null ? String(apellido).trim() : null;
+    const monto        = Number(valor || 0);
+    const reservaInput = String(id_reserva || '').trim();
 
-    if (!email || !bookingId || !firstName || !monto) {
+    // Validación básica
+    if (!email || !firstName || !monto || !reservaInput) {
       return cb({ url_factura: '' });
     }
 
     await client.query('BEGIN');
 
+    // 1) Crear / actualizar usuario SOLO por correo (el bus no usa bookingUserId)
     let uRes = await client.query(
-      'SELECT id FROM usuarios WHERE booking_user_id=$1 LIMIT 1',
-      [bookingId]
+      'SELECT id, nombre, apellido, email FROM usuarios WHERE email=$1 LIMIT 1',
+      [email]
     );
+
     let usuarioId;
     if (uRes.rows.length) {
       usuarioId = uRes.rows[0].id;
       await client.query(
         `UPDATE usuarios
-            SET nombre=$1, apellido=COALESCE($2,apellido), email=$3
-          WHERE id=$4`,
-        [firstName, lastName, email, usuarioId]
+            SET nombre=$1,
+                apellido=COALESCE($2, apellido)
+          WHERE id=$3`,
+        [firstName, lastName, usuarioId]
       );
     } else {
-      uRes = await client.query(
-        'SELECT id FROM usuarios WHERE email=$1 LIMIT 1',
-        [email]
+      const ins = await client.query(
+        `INSERT INTO usuarios (nombre, apellido, email, rol, estado, creado_en)
+         VALUES ($1,$2,$3,'user','activo',NOW())
+         RETURNING id`,
+        [firstName, lastName, email]
       );
-      if (uRes.rows.length) {
-        usuarioId = uRes.rows[0].id;
-        await client.query(
-          `UPDATE usuarios
-              SET booking_user_id=$1,
-                  nombre=$2,
-                  apellido=COALESCE($3,apellido)
-            WHERE id=$4`,
-          [bookingId, firstName, lastName, usuarioId]
-        );
-      } else {
-        const ins = await client.query(
-          `INSERT INTO usuarios (nombre, apellido, email, rol, estado, booking_user_id, creado_en)
-           VALUES ($1,$2,$3,'user','activo',$4,NOW())
-           RETURNING id`,
-          [firstName, lastName, email, bookingId]
-        );
-        usuarioId = ins.rows[0].id;
-      }
+      usuarioId = ins.rows[0].id;
     }
 
+    // 2) Buscar la reserva exacta por id_reserva (puede ser código o id numérico)
     const rRes = await client.query(
       `SELECT id, codigo_reserva
          FROM reservas
-        WHERE usuario_id=$1
-        ORDER BY id DESC
+        WHERE codigo_reserva = $1
+           OR id::text = $1
         LIMIT 1`,
-      [usuarioId]
+      [reservaInput]
     );
     const reserva = rRes.rows[0] || null;
+    if (!reserva) {
+      await client.query('ROLLBACK');
+      return cb({ url_factura: '' });
+    }
 
+    // 3) Asociar la reserva al usuario si aún no lo está
+    await client.query(
+      `UPDATE reservas
+          SET usuario_id = $1
+        WHERE id = $2
+          AND (usuario_id IS NULL OR usuario_id <> $1)`,
+      [usuarioId, reserva.id]
+    );
+
+    // 4) Calcular subtotal + IVA a partir de valor (monto total)
     const subtotal = +(monto / 1.12).toFixed(2);
     const iva      = +(monto - subtotal).toFixed(2);
     const total    = monto;
 
     const codigoFactura =
-      'FAC-' + new Date().toISOString().slice(0,10).replace(/-/g,'') +
-      '-'    + Math.random().toString(36).slice(2,6).toUpperCase();
+      'FAC-' + new Date().toISOString().slice(0, 10).replace(/-/g, '') +
+      '-'    + Math.random().toString(36).slice(2, 6).toUpperCase();
 
-    const fIns = await client.query(
+    await client.query(
       `INSERT INTO facturas
         (codigo_factura, reserva_id, fecha_emision, subtotal, iva, total, metodo_pago, estado)
-       VALUES ($1,$2,NOW(),$3,$4,$5,$6,$7)
-       RETURNING id`,
+       VALUES ($1,$2,NOW(),$3,$4,$5,$6,$7)`,
       [
         codigoFactura,
-        reserva ? reserva.id : null,
+        reserva.id,
         subtotal,
         iva,
         total,
@@ -522,7 +524,7 @@ async function emitirFacturaPaquete(args, cb) {
       ]
     );
 
-    // Puedes ajustar la URL a tu ruta real
+    // 5) URL de la factura (ajusta dominio si hace falta)
     const url = `https://cuenca-travel.com/facturas/${codigoFactura}.pdf`;
 
     await client.query('COMMIT');
