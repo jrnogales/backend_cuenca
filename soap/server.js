@@ -543,13 +543,15 @@ async function emitirFacturaPaquete(args, cb) {
  */
 async function crearUsuarioExterno(args, cb) {
   const client = await pool.connect();
-  try {
-    const { bookingUserId, nombre, apellido, correo } = args || {};
-    const email = String(correo || '').trim();
-    const bookingId = String(bookingUserId || '').trim();
-    const firstName = String(nombre || '').trim();
-    const lastName = apellido != null ? String(apellido).trim() : null;
 
+  // 🔹 Sacamos los datos de args FUERA del try/catch para usarlos también en el catch
+  const { bookingUserId, nombre, apellido, correo } = args || {};
+  const email = String(correo || '').trim();
+  const bookingId = String(bookingUserId || '').trim();
+  const firstName = String(nombre || '').trim();
+  const lastName = apellido != null ? String(apellido).trim() : null;
+
+  try {
     if (!email || !bookingId || !firstName) {
       return cb({
         usuario: {
@@ -619,10 +621,10 @@ async function crearUsuarioExterno(args, cb) {
     cb({
       usuario: {
         id_usuario: 0,
-        bookingUserId,
-        nombre,
-        apellido,
-        correo
+        bookingUserId: bookingId,   // 👈 ahora SÍ existen estas variables
+        nombre: firstName,
+        apellido: lastName,
+        correo: email
       }
     });
   } finally {
