@@ -119,9 +119,10 @@ document.addEventListener("DOMContentLoaded", () => {
     msgC.textContent = ok ? "" : "Debe tener 10 números";
   });
 
+  // 🔁 CAMBIO AQUÍ: regex más general, acepta .ec, .edu.ec, etc.
   email.addEventListener("input", () => {
-    const ok = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.com$/.test(email.value);
-    msgE.textContent = ok ? "" : "Debe ser email válido @xxxx.com";
+    const ok = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email.value);
+    msgE.textContent = ok ? "" : "Debe ser un email válido";
   });
 
   telefono.addEventListener("input", () => {
@@ -129,7 +130,7 @@ document.addEventListener("DOMContentLoaded", () => {
     msgT.textContent = ok ? "" : "Debe tener 10 números";
   });
 
-  // ✅ ÚNICO CAMBIO: BLOQUEAR ESPACIOS EN LA CONTRASEÑA EN TIEMPO REAL
+  // ✅ BLOQUEAR ESPACIOS EN LA CONTRASEÑA EN TIEMPO REAL
   pass.addEventListener("input", () => {
     if (pass.value.includes(" ")) {
       pass.value = pass.value.replace(/\s+/g, "");
