@@ -18,50 +18,38 @@
 
   <form method="POST" action="/register">
 
-    <!-- Nombre -->
     <label>Nombre</label>
     <input id="nombre" name="nombre" type="text"
            class="input" required minlength="1"
            placeholder="Tu nombre">
-
     <small id="msg-nombre" class="msg"></small>
 
-    <!-- Apellido -->
     <label style="margin-top:16px;">Apellido</label>
     <input id="apellido" name="apellido" type="text"
            class="input" required minlength="1"
            placeholder="Tu apellido">
-
     <small id="msg-apellido" class="msg"></small>
 
-    <!-- Cédula -->
     <label style="margin-top:16px;">Cédula</label>
     <input id="cedula" name="cedula" type="text"
            class="input" maxlength="10"
            placeholder="10 dígitos">
-
     <small id="msg-cedula" class="msg"></small>
 
-    <!-- Email -->
     <label style="margin-top:16px;">Email</label>
     <input id="email" name="email" type="email"
            class="input" placeholder="ejemplo@correo.com">
-
     <small id="msg-email" class="msg"></small>
 
-    <!-- Teléfono -->
     <label style="margin-top:16px;">Teléfono</label>
     <input id="telefono" name="telefono" type="text"
            class="input" maxlength="10"
            placeholder="10 dígitos">
-
     <small id="msg-telefono" class="msg"></small>
 
-    <!-- Contraseña -->
     <label style="margin-top:16px;">Contraseña</label>
     <input id="password" name="password" type="password"
            class="input" minlength="6" placeholder="Mínimo 6 caracteres">
-
     <small id="msg-pass" class="msg"></small>
 
     <button id="btn-register" class="btn-primary"
@@ -103,7 +91,6 @@
 <script>
 document.addEventListener("DOMContentLoaded", () => {
 
-  // Campos
   const nombre   = document.getElementById("nombre");
   const apellido = document.getElementById("apellido");
   const cedula   = document.getElementById("cedula");
@@ -112,7 +99,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const pass     = document.getElementById("password");
   const btn      = document.getElementById("btn-register");
 
-  // Mensajes
   const msgN  = document.getElementById("msg-nombre");
   const msgA  = document.getElementById("msg-apellido");
   const msgC  = document.getElementById("msg-cedula");
@@ -120,7 +106,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const msgT  = document.getElementById("msg-telefono");
   const msgP  = document.getElementById("msg-pass");
 
-  // Validación en tiempo real
   nombre.addEventListener("input", () => {
     msgN.textContent = nombre.value.trim().length < 1 ? "Ingrese su nombre" : "";
   });
@@ -144,13 +129,18 @@ document.addEventListener("DOMContentLoaded", () => {
     msgT.textContent = ok ? "" : "Debe tener 10 números";
   });
 
+  // ✅ ÚNICO CAMBIO: BLOQUEAR ESPACIOS EN LA CONTRASEÑA EN TIEMPO REAL
   pass.addEventListener("input", () => {
-    msgP.textContent = pass.value.length < 6 ? "Mínimo 6 caracteres" : "";
+    if (pass.value.includes(" ")) {
+      pass.value = pass.value.replace(/\s+/g, "");
+    }
+
+    msgP.textContent = pass.value.length < 6
+      ? "Mínimo 6 caracteres (sin espacios)"
+      : "";
   });
 
-  // Evitar envío si algo está mal
   document.querySelector("form").addEventListener("submit", (e) => {
-
     if (
       msgN.textContent ||
       msgA.textContent ||
