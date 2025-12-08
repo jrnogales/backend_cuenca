@@ -610,21 +610,23 @@ async function crearUsuarioExterno(args, cb) {
     } else {
       // 4) Si no existe, insertamos un usuario "externo"
       //    IMPORTANTE: damos un valor a password_hash (p.ej. cadena vacía)
-      const ins = await client.query(
-        `INSERT INTO usuarios
-           (nombre,
-            apellido,
-            email,
-            password_hash,
-            rol,
-            estado,
-            booking_user_id,
-            creado_en)
-         VALUES
-           ($1, $2, $3, '', 'user', 'activo', $4, NOW())
-         RETURNING id, nombre, apellido, email`,
-        [firstName, lastName, email, bookingId]
-      );
+    const ins = await client.query(
+  `INSERT INTO usuarios
+     (nombre,
+      apellido,
+      email,
+      telefono,
+      password_hash,
+      rol,
+      estado,
+      booking_user_id,
+      creado_en)
+   VALUES
+     ($1, $2, $3, '0000000000', '', 'user', 'activo', $4, NOW())
+   RETURNING id, nombre, apellido, email`,
+  [firstName, lastName, email, bookingId]
+);
+
 
       user = ins.rows[0];
     }
