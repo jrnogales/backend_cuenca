@@ -540,11 +540,12 @@ async function emitirFacturaPaquete(args, cb) {
 
 /**
  * crearUsuarioExterno()
+ * SOAP: crearUsuarioExternoRequest
  */
 async function crearUsuarioExterno(args, cb) {
   const client = await pool.connect();
 
-  // 🔹 Sacamos los datos de args FUERA del try/catch para usarlos también en el catch
+  // Sacamos los datos de args FUERA del try/catch
   const { bookingUserId, nombre, apellido, correo } = args || {};
   const email = String(correo || '').trim();
   const bookingId = String(bookingUserId || '').trim();
@@ -552,6 +553,7 @@ async function crearUsuarioExterno(args, cb) {
   const lastName = apellido != null ? String(apellido).trim() : null;
 
   try {
+    // ===== Validación mínima =====
     if (!email || !bookingId || !firstName) {
       return cb({
         usuario: {
@@ -566,27 +568,38 @@ async function crearUsuarioExterno(args, cb) {
 
     await client.query('BEGIN');
 
+    // 1) Buscar por booking_user_id
     let res = await client.query(
-      'SELECT id, nombre, apellido, email FROM usuarios WHERE booking_user_id=$1 LIMIT 1',
+      `SELECT id, nombre, apellido, email
+         FROM usuarios
+        WHERE booking_user_id::text = $1
+        LIMIT 1`,
       [bookingId]
     );
 
+    // 2) Si no existe por booking_user_id, buscar por email
     if (!res.rows.length) {
       res = await client.query(
-        'SELECT id, nombre, apellido, email FROM usuarios WHERE email=$1 LIMIT 1',
+        `SELECT id, nombre, apellido, email
+           FROM usuarios
+          WHERE email = $1
+          LIMIT 1`,
         [email]
       );
     }
 
     let user;
+
     if (res.rows.length) {
+      // 3) Si ya existe, actualizamos datos básicos y booking_user_id
       user = res.rows[0];
+
       await client.query(
         `UPDATE usuarios
-            SET nombre=$1,
-                apellido=COALESCE($2,apellido),
-                booking_user_id=$3
-          WHERE id=$4`,
+            SET nombre = $1,
+                apellido = COALESCE($2, apellido),
+                booking_user_id = $3
+          WHERE id = $4`,
         [
           firstName || user.nombre,
           lastName,
@@ -595,17 +608,30 @@ async function crearUsuarioExterno(args, cb) {
         ]
       );
     } else {
+      // 4) Si no existe, insertamos un usuario "externo"
+      //    IMPORTANTE: damos un valor a password_hash (p.ej. cadena vacía)
       const ins = await client.query(
-        `INSERT INTO usuarios (nombre, apellido, email, rol, estado, booking_user_id, creado_en)
-         VALUES ($1,$2,$3,'user','activo',$4,NOW())
+        `INSERT INTO usuarios
+           (nombre,
+            apellido,
+            email,
+            password_hash,
+            rol,
+            estado,
+            booking_user_id,
+            creado_en)
+         VALUES
+           ($1, $2, $3, '', 'user', 'activo', $4, NOW())
          RETURNING id, nombre, apellido, email`,
         [firstName, lastName, email, bookingId]
       );
+
       user = ins.rows[0];
     }
 
     await client.query('COMMIT');
 
+    // 5) Respuesta OK
     cb({
       usuario: {
         id_usuario: user.id,
@@ -618,10 +644,12 @@ async function crearUsuarioExterno(args, cb) {
   } catch (e) {
     console.error('crearUsuarioExterno SOAP error:', e);
     try { await client.query('ROLLBACK'); } catch {}
+
+    // 6) En error, devolvemos el usuario “cero” pero con los datos de entrada
     cb({
       usuario: {
         id_usuario: 0,
-        bookingUserId: bookingId,   // 👈 ahora SÍ existen estas variables
+        bookingUserId: bookingId,
         nombre: firstName,
         apellido: lastName,
         correo: email
@@ -631,6 +659,7 @@ async function crearUsuarioExterno(args, cb) {
     client.release();
   }
 }
+
 
 /**
  * buscarDatosReserva()
